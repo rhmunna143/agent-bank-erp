@@ -38,7 +38,40 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Step 0b: Update process_withdrawal — only hand cash decreases (mother account is reference only)
+-- Step 0b: Update process_deposit — only hand cash increases (mother account is reference only)
+CREATE OR REPLACE FUNCTION public.process_deposit(
+  p_bank_id UUID,
+  p_customer_name TEXT,
+  p_customer_account TEXT,
+  p_amount NUMERIC,
+  p_commission NUMERIC,
+  p_mother_account_id UUID,
+  p_reference TEXT DEFAULT NULL,
+  p_notes TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+  v_txn_id UUID;
+  v_profit_account_id UUID;
+BEGIN
+  INSERT INTO public.transactions (bank_id, type, amount, commission, customer_name, customer_account, mother_account_id, reference, notes, performed_by)
+  VALUES (p_bank_id, 'deposit', p_amount, p_commission, p_customer_name, p_customer_account, p_mother_account_id, p_reference, p_notes, auth.uid())
+  RETURNING id INTO v_txn_id;
+
+  UPDATE public.hand_cash_accounts SET balance = balance + p_amount WHERE bank_id = p_bank_id;
+
+  IF p_commission > 0 THEN
+    SELECT id INTO v_profit_account_id FROM public.profit_accounts WHERE bank_id = p_bank_id LIMIT 1;
+    IF v_profit_account_id IS NOT NULL THEN
+      UPDATE public.profit_accounts SET balance = balance + p_commission WHERE id = v_profit_account_id;
+      UPDATE public.transactions SET profit_account_id = v_profit_account_id WHERE id = v_txn_id;
+    END IF;
+  END IF;
+
+  RETURN v_txn_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Step 0c: Update process_withdrawal — only hand cash decreases (mother account is reference only)
 CREATE OR REPLACE FUNCTION public.process_withdrawal(
   p_bank_id UUID,
   p_customer_name TEXT,
@@ -71,7 +104,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Step 0c: Update process_withdrawal_with_shortage — user specifies mother account deduction
+-- Step 0d: Update process_withdrawal_with_shortage — user specifies mother account deduction
 CREATE OR REPLACE FUNCTION public.process_withdrawal_with_shortage(
   p_bank_id UUID,
   p_customer_name TEXT,
