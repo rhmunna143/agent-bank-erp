@@ -14,6 +14,6 @@ export const useTransactionStore = create((set) => ({
   setTodaySummary: (summary) => set({ todaySummary: summary }),
   setLoading: (loading) => set({ loading }),
 
-  refreshNeeded: false,
-  triggerRefresh: () => set((state) => ({ refreshNeeded: !state.refreshNeeded })),
+  refreshKey: 0,
+  triggerRefresh: () => set((state) => ({ refreshKey: state.refreshKey + 1 })),
 }));

@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useBank } from '@/hooks/useBank';
+import { useMotherAccounts } from '@/hooks/useMotherAccounts';
+import { useHandCash } from '@/hooks/useHandCash';
+import { useProfitAccounts } from '@/hooks/useProfitAccounts';
 import { TransactionTable } from '@/components/tables/TransactionTable';
+import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
@@ -10,8 +14,10 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { DateRangePicker } from '@/components/common/DateRangePicker';
 import { transactionService } from '@/services/transactionService';
 import { useTransactionStore } from '@/stores/transactionStore';
+import { formatCurrency } from '@/utils/currency';
 import { TRANSACTION_TYPES, ITEMS_PER_PAGE } from '@/utils/constants';
 import { List, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 function getTodayRange() {
   const today = new Date();
@@ -24,7 +30,10 @@ function getTodayRange() {
 
 export default function TransactionHistoryPage() {
   const { bank, currencySymbol } = useBank();
-  const { refreshKey } = useTransactionStore();
+  const { refresh: refreshMA } = useMotherAccounts();
+  const { refresh: refreshHC } = useHandCash();
+  const { refresh: refreshPA } = useProfitAccounts();
+  const { refreshKey, triggerRefresh } = useTransactionStore();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -39,6 +48,10 @@ export default function TransactionHistoryPage() {
     startDate: todayDate,
     endDate: todayDate,
   });
+
+  // Edit transaction state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTxn, setEditingTxn] = useState(null);
 
   const fetchTransactions = useCallback(async () => {
     if (!bank?.id) return;
@@ -81,6 +94,19 @@ export default function TransactionHistoryPage() {
   const clearFilters = () => {
     setFilters({ search: '', type: '', startDate: todayDate, endDate: todayDate });
     setPage(1);
+  };
+
+  const handleEditClick = (txn) => {
+    setEditingTxn(txn);
+    setEditOpen(true);
+  };
+
+  const handleEditSaved = () => {
+    refreshMA();
+    refreshHC();
+    refreshPA();
+    triggerRefresh();
+    fetchTransactions();
   };
 
   return (
@@ -147,7 +173,7 @@ export default function TransactionHistoryPage() {
             />
           ) : (
             <>
-              <TransactionTable transactions={transactions} currencySymbol={currencySymbol} />
+              <TransactionTable transactions={transactions} currencySymbol={currencySymbol} onEdit={handleEditClick} />
               
               {/* Pagination */}
               {totalPages > 1 && (
@@ -179,6 +205,14 @@ export default function TransactionHistoryPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Transaction Dialog */}
+      <EditTransactionDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        transaction={editingTxn}
+        onSaved={handleEditSaved}
+      />
     </div>
   );
 }

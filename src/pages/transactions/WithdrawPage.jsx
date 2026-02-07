@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMotherAccounts } from '@/hooks/useMotherAccounts';
 import { useHandCash } from '@/hooks/useHandCash';
 import { useBank } from '@/hooks/useBank';
 import { WithdrawForm } from '@/components/forms/WithdrawForm';
+import { TransactionTable } from '@/components/tables/TransactionTable';
+import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatCurrency } from '@/utils/currency';
-import { ArrowDownRight, Wallet, Building2 } from 'lucide-react';
+import { ArrowDownRight, Wallet, Building2, List } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { transactionService } from '@/services/transactionService';
 import { useTransactionStore } from '@/stores/transactionStore';
@@ -15,8 +17,39 @@ export default function WithdrawPage() {
   const { accounts: motherAccounts, loading: maLoading, refresh: refreshMA } = useMotherAccounts();
   const { handCash, loading: hcLoading, refresh: refreshHC } = useHandCash();
   const { bank, currencySymbol } = useBank();
-  const { triggerRefresh } = useTransactionStore();
+  const { triggerRefresh, refreshKey } = useTransactionStore();
   const [submitting, setSubmitting] = useState(false);
+
+  // Recent withdrawals
+  const [recentTxns, setRecentTxns] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTxn, setEditingTxn] = useState(null);
+
+  const fetchRecent = useCallback(async () => {
+    if (!bank?.id) return;
+    setLoadingRecent(true);
+    try {
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10);
+      const { data } = await transactionService.getTransactions(bank.id, {
+        type: 'withdrawal',
+        startDate: `${dateStr}T00:00:00`,
+        endDate: `${dateStr}T23:59:59`,
+        limit: 50,
+        offset: 0,
+      });
+      setRecentTxns(data || []);
+    } catch (e) {
+      console.error('Failed to load recent withdrawals', e);
+    } finally {
+      setLoadingRecent(false);
+    }
+  }, [bank?.id, refreshKey]);
+
+  useEffect(() => { fetchRecent(); }, [fetchRecent]);
 
   const handleWithdraw = async (data) => {
     setSubmitting(true);
@@ -53,6 +86,17 @@ export default function WithdrawPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditClick = (txn) => {
+    setEditingTxn(txn);
+    setEditOpen(true);
+  };
+
+  const handleEditSaved = () => {
+    refreshMA();
+    refreshHC();
+    triggerRefresh();
   };
 
   if (maLoading || hcLoading) return <LoadingSpinner className="h-64" />;
@@ -103,6 +147,29 @@ export default function WithdrawPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Today's Withdrawals */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <List className="h-5 w-5" /> Today's Withdrawals
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingRecent ? (
+            <LoadingSpinner className="h-24" />
+          ) : (
+            <TransactionTable transactions={recentTxns} currencySymbol={currencySymbol} onEdit={handleEditClick} />
+          )}
+        </CardContent>
+      </Card>
+
+      <EditTransactionDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        transaction={editingTxn}
+        onSaved={handleEditSaved}
+      />
     </div>
   );
 }

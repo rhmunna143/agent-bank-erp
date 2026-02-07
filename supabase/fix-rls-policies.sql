@@ -46,10 +46,11 @@ CREATE OR REPLACE FUNCTION public.process_cash_in(
 DECLARE
   v_txn_id UUID;
 BEGIN
-  INSERT INTO public.transactions (bank_id, type, amount, source, mother_account_id, reference, notes, performed_by)
+  INSERT INTO public.transactions (bank_id, type, amount, source, mother_account_id, profit_account_id, reference, notes, performed_by)
   VALUES (
     p_bank_id, 'cash_in', p_amount, p_source,
     CASE WHEN p_target_type = 'mother_account' THEN p_target_id ELSE NULL END,
+    CASE WHEN p_target_type = 'profit_account' THEN p_target_id ELSE NULL END,
     p_reference, p_notes, auth.uid()
   )
   RETURNING id INTO v_txn_id;
@@ -327,3 +328,65 @@ CREATE POLICY "Admins can manage alerts" ON public.alert_configs FOR INSERT
   WITH CHECK (bank_id IN (SELECT public.get_my_admin_bank_ids()));
 CREATE POLICY "Admins can update alerts" ON public.alert_configs FOR UPDATE
   USING (bank_id IN (SELECT public.get_my_admin_bank_ids()));
+
+-- =====================================================
+-- Update Transaction RPC (reverses old balance, applies new)
+-- =====================================================
+CREATE OR REPLACE FUNCTION public.update_transaction(
+  p_txn_id UUID,
+  p_customer_name TEXT DEFAULT NULL,
+  p_customer_account TEXT DEFAULT NULL,
+  p_amount NUMERIC DEFAULT NULL,
+  p_notes TEXT DEFAULT NULL,
+  p_source TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+  v_old RECORD;
+  v_diff NUMERIC;
+BEGIN
+  -- Fetch old transaction
+  SELECT * INTO v_old FROM public.transactions WHERE id = p_txn_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Transaction not found';
+  END IF;
+
+  -- Calculate amount difference
+  v_diff := COALESCE(p_amount, v_old.amount) - v_old.amount;
+
+  -- Adjust balances based on type if amount changed
+  IF v_diff <> 0 THEN
+    IF v_old.type = 'deposit' THEN
+      -- Deposit: hand cash increases
+      UPDATE public.hand_cash_accounts SET balance = balance + v_diff WHERE bank_id = v_old.bank_id;
+    ELSIF v_old.type = 'withdrawal' THEN
+      -- Withdrawal: hand cash decreases (so diff is subtracted)
+      UPDATE public.hand_cash_accounts SET balance = balance - v_diff WHERE bank_id = v_old.bank_id;
+      -- If it had shortage, also adjust mother account
+      IF v_old.has_shortage AND v_old.mother_account_id IS NOT NULL THEN
+        UPDATE public.mother_accounts SET balance = balance - v_diff WHERE id = v_old.mother_account_id;
+      END IF;
+    ELSIF v_old.type = 'cash_in' THEN
+      -- Cash-in: depends on where the cash went
+      IF v_old.mother_account_id IS NOT NULL THEN
+        UPDATE public.mother_accounts SET balance = balance + v_diff WHERE id = v_old.mother_account_id;
+      ELSIF v_old.profit_account_id IS NOT NULL THEN
+        UPDATE public.profit_accounts SET balance = balance + v_diff WHERE id = v_old.profit_account_id;
+      ELSE
+        -- default: hand cash
+        UPDATE public.hand_cash_accounts SET balance = balance + v_diff WHERE bank_id = v_old.bank_id;
+      END IF;
+    END IF;
+  END IF;
+
+  -- Update the transaction record
+  UPDATE public.transactions SET
+    customer_name = COALESCE(p_customer_name, customer_name),
+    customer_account = COALESCE(p_customer_account, customer_account),
+    amount = COALESCE(p_amount, amount),
+    notes = COALESCE(p_notes, notes),
+    source = COALESCE(p_source, source)
+  WHERE id = p_txn_id;
+
+  RETURN p_txn_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

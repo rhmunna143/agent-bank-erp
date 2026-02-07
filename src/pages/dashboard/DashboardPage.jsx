@@ -28,7 +28,7 @@ export default function DashboardPage() {
   const { accounts: profitAccounts } = useProfitAccounts();
   const { getTodaySummary, getTransactions, getExpenses } = useTransactions();
   const { alerts } = useAlerts();
-  const { refreshNeeded } = useTransactionStore();
+  const { refreshKey } = useTransactionStore();
 
   const [todaySummary, setTodaySummary] = useState({
     totalDeposits: 0,
@@ -80,7 +80,7 @@ export default function DashboardPage() {
       }
     }
     loadData();
-  }, [bankId, refreshNeeded]);
+  }, [bankId, refreshKey]);
 
   const handleGenerateDailyLog = async () => {
     setGeneratingLog(true);

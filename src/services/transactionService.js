@@ -170,6 +170,19 @@ export const transactionService = {
     return data;
   },
 
+  async updateTransaction(id, updates) {
+    const { data, error } = await supabase.rpc('update_transaction', {
+      p_txn_id: id,
+      p_customer_name: updates.customer_name || null,
+      p_customer_account: updates.customer_account || null,
+      p_amount: updates.amount != null ? parseFloat(updates.amount) : null,
+      p_notes: updates.notes || null,
+      p_source: updates.source || null,
+    });
+    if (error) throw error;
+    return data;
+  },
+
   async getTodaySummary(bankId) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

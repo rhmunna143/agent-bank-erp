@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMotherAccounts } from '@/hooks/useMotherAccounts';
 import { useHandCash } from '@/hooks/useHandCash';
 import { useProfitAccounts } from '@/hooks/useProfitAccounts';
 import { useBank } from '@/hooks/useBank';
 import { CashInForm } from '@/components/forms/CashInForm';
+import { TransactionTable } from '@/components/tables/TransactionTable';
+import { EditTransactionDialog } from '@/components/transactions/EditTransactionDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatCurrency } from '@/utils/currency';
-import { ArrowDownToLine, Wallet, Building2, TrendingUp } from 'lucide-react';
+import { ArrowDownToLine, Wallet, Building2, TrendingUp, List } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { transactionService } from '@/services/transactionService';
 import { useTransactionStore } from '@/stores/transactionStore';
@@ -17,8 +19,39 @@ export default function CashInPage() {
   const { handCash, loading: hcLoading, refresh: refreshHC } = useHandCash();
   const { accounts: profitAccounts, loading: paLoading, refresh: refreshPA } = useProfitAccounts();
   const { bank, currencySymbol } = useBank();
-  const { triggerRefresh } = useTransactionStore();
+  const { triggerRefresh, refreshKey } = useTransactionStore();
   const [submitting, setSubmitting] = useState(false);
+
+  // Recent cash-ins
+  const [recentTxns, setRecentTxns] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTxn, setEditingTxn] = useState(null);
+
+  const fetchRecent = useCallback(async () => {
+    if (!bank?.id) return;
+    setLoadingRecent(true);
+    try {
+      const today = new Date();
+      const dateStr = today.toISOString().slice(0, 10);
+      const { data } = await transactionService.getTransactions(bank.id, {
+        type: 'cash_in',
+        startDate: `${dateStr}T00:00:00`,
+        endDate: `${dateStr}T23:59:59`,
+        limit: 50,
+        offset: 0,
+      });
+      setRecentTxns(data || []);
+    } catch (e) {
+      console.error('Failed to load recent cash-ins', e);
+    } finally {
+      setLoadingRecent(false);
+    }
+  }, [bank?.id, refreshKey]);
+
+  useEffect(() => { fetchRecent(); }, [fetchRecent]);
 
   const handleCashIn = async (data) => {
     setSubmitting(true);
@@ -42,6 +75,18 @@ export default function CashInPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditClick = (txn) => {
+    setEditingTxn(txn);
+    setEditOpen(true);
+  };
+
+  const handleEditSaved = () => {
+    refreshHC();
+    refreshMA();
+    refreshPA();
+    triggerRefresh();
   };
 
   if (maLoading || hcLoading || paLoading) return <LoadingSpinner className="h-64" />;
@@ -103,6 +148,29 @@ export default function CashInPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Today's Cash-ins */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <List className="h-5 w-5" /> Today's Cash-ins
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingRecent ? (
+            <LoadingSpinner className="h-24" />
+          ) : (
+            <TransactionTable transactions={recentTxns} currencySymbol={currencySymbol} onEdit={handleEditClick} />
+          )}
+        </CardContent>
+      </Card>
+
+      <EditTransactionDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        transaction={editingTxn}
+        onSaved={handleEditSaved}
+      />
     </div>
   );
 }
