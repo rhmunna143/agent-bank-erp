@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,7 +10,7 @@ import { User, Save, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ProfilePage() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, updateProfile } = useAuthStore();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [saving, setSaving] = useState(false);
@@ -24,8 +24,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await authService.updateProfile({ full_name: fullName, phone });
-      await refreshProfile();
+      await updateProfile({ full_name: fullName, phone });
       toast.success('Profile updated!');
     } catch (error) {
       toast.error(error.message || 'Failed to update profile');
@@ -46,7 +45,7 @@ export default function ProfilePage() {
     }
     setChangingPassword(true);
     try {
-      await authService.changePassword(newPassword);
+      await authService.updatePassword(newPassword);
       toast.success('Password changed!');
       setCurrentPassword('');
       setNewPassword('');

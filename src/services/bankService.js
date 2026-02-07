@@ -121,4 +121,12 @@ export const bankService = {
     if (error) throw error;
     return data;
   },
+
+  async deleteExpenseCategory(categoryId) {
+    const { error } = await supabase
+      .from('expense_categories')
+      .delete()
+      .eq('id', categoryId);
+    if (error) throw error;
+  },
 };

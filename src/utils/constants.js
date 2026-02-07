@@ -32,8 +32,9 @@ export const ACCOUNT_TYPES = {
 };
 
 export const ROLES = {
-  ADMIN: 'admin',
-  USER: 'user',
+  owner: 'Owner',
+  admin: 'Admin',
+  operator: 'Operator',
 };
 
 export const REPORT_PERIODS = {

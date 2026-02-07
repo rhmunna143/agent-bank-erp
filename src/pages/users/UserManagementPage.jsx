@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { Select } from '@/components/ui/Select';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/Select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -118,17 +118,18 @@ export default function UserManagementPage() {
             </div>
             <div>
               <Label htmlFor="invite-role">Role</Label>
-              <Select
-                id="invite-role"
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-              >
-                {Object.entries(ROLES)
-                  .filter(([key]) => key !== 'owner')
-                  .map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))
-                }
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ROLES)
+                    .filter(([key]) => key !== 'owner')
+                    .map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))
+                  }
+                </SelectContent>
               </Select>
             </div>
             <div className="flex gap-2 justify-end">

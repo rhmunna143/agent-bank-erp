@@ -2,23 +2,10 @@ import { supabase } from './supabaseClient';
 
 export const dailyLogService = {
   async generate(bankId, userId) {
-    const today = new Date().toISOString().split('T')[0];
-    const snapshot = await this.getSnapshot(bankId, today);
-
-    // Use upsert (INSERT ... ON CONFLICT UPDATE) to avoid needing an UPDATE RLS policy
-    const { data, error } = await supabase
-      .from('daily_logs')
-      .upsert(
-        {
-          bank_id: bankId,
-          log_date: today,
-          ...snapshot,
-          generated_by: userId,
-        },
-        { onConflict: 'bank_id,log_date' }
-      )
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('generate_daily_log', {
+      p_bank_id: bankId,
+      p_user_id: userId,
+    });
     if (error) throw error;
     return data;
   },
