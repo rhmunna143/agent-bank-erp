@@ -4,7 +4,20 @@
 -- It drops ALL existing policies and recreates them
 -- =====================================================
 
--- Step 0: Update the process_cash_in RPC to support target account selection
+-- Step 0a: Add FK from transactions.performed_by → profiles so PostgREST can join
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_transactions_performed_by_profiles'
+  ) THEN
+    ALTER TABLE public.transactions
+      ADD CONSTRAINT fk_transactions_performed_by_profiles
+      FOREIGN KEY (performed_by) REFERENCES public.profiles(id);
+  END IF;
+END $$;
+
+-- Step 0b: Update the process_cash_in RPC to support target account selection
 CREATE OR REPLACE FUNCTION public.process_cash_in(
   p_bank_id UUID,
   p_amount NUMERIC,

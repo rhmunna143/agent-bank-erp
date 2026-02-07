@@ -92,7 +92,8 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   has_shortage BOOLEAN DEFAULT FALSE,
   shortage_amount NUMERIC(15,2) DEFAULT 0,
   performed_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT fk_transactions_performed_by_profiles FOREIGN KEY (performed_by) REFERENCES public.profiles(id)
 );
 
 -- 8. EXPENSE CATEGORIES

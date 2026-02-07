@@ -78,7 +78,7 @@ export const transactionService = {
   async getTransactions(bankId, filters = {}) {
     let query = supabase
       .from('transactions')
-      .select('*, mother_accounts(name, account_number), profiles!transactions_performed_by_fkey(full_name)')
+      .select('*, mother_accounts(name, account_number), performer:profiles!fk_transactions_performed_by_profiles(full_name)', { count: 'exact' })
       .eq('bank_id', bankId)
       .order('created_at', { ascending: false });
 
@@ -98,7 +98,7 @@ export const transactionService = {
       query = query.eq('performed_by', filters.performedBy);
     }
     if (filters.search) {
-      query = query.or(`customer_name.ilike.%${filters.search}%,customer_account_no.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      query = query.or(`customer_name.ilike.%${filters.search}%,customer_account.ilike.%${filters.search}%,notes.ilike.%${filters.search}%`);
     }
     if (filters.limit) {
       query = query.limit(filters.limit);
@@ -115,7 +115,7 @@ export const transactionService = {
   async getCashInTransactions(bankId, filters = {}) {
     let query = supabase
       .from('transactions')
-      .select('*, profiles!transactions_performed_by_fkey(full_name)')
+      .select('*')
       .eq('bank_id', bankId)
       .eq('type', 'cash_in')
       .order('created_at', { ascending: false });

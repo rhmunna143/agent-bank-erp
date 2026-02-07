@@ -20,8 +20,9 @@ export const DEFAULT_EXPENSE_CATEGORIES = [
 ];
 
 export const TRANSACTION_TYPES = {
-  DEPOSIT: 'deposit',
-  WITHDRAWAL: 'withdrawal',
+  deposit: 'Deposit',
+  withdrawal: 'Withdrawal',
+  cash_in: 'Cash In',
 };
 
 export const ACCOUNT_TYPES = {

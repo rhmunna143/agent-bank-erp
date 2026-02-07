@@ -3,7 +3,7 @@ import { useBank } from '@/hooks/useBank';
 import { TransactionTable } from '@/components/tables/TransactionTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -13,6 +13,15 @@ import { useTransactionStore } from '@/stores/transactionStore';
 import { TRANSACTION_TYPES, ITEMS_PER_PAGE } from '@/utils/constants';
 import { List, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
+function getTodayRange() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  return { start: `${dateStr}T00:00:00`, end: `${dateStr}T23:59:59` };
+}
+
 export default function TransactionHistoryPage() {
   const { bank, currencySymbol } = useBank();
   const { refreshKey } = useTransactionStore();
@@ -20,11 +29,15 @@ export default function TransactionHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+
+  const todayRange = getTodayRange();
+  const todayDate = todayRange.start.slice(0, 10);
+
   const [filters, setFilters] = useState({
     search: '',
     type: '',
-    dateFrom: '',
-    dateTo: '',
+    startDate: todayDate,
+    endDate: todayDate,
   });
 
   const fetchTransactions = useCallback(async () => {
@@ -32,14 +45,19 @@ export default function TransactionHistoryPage() {
     setLoading(true);
     try {
       const offset = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count } = await transactionService.getAll(bank.id, {
+      const queryFilters = {
         limit: ITEMS_PER_PAGE,
         offset,
         type: filters.type || undefined,
         search: filters.search || undefined,
-        dateFrom: filters.dateFrom || undefined,
-        dateTo: filters.dateTo || undefined,
-      });
+      };
+      if (filters.startDate) {
+        queryFilters.startDate = `${filters.startDate}T00:00:00`;
+      }
+      if (filters.endDate) {
+        queryFilters.endDate = `${filters.endDate}T23:59:59`;
+      }
+      const { data, count } = await transactionService.getTransactions(bank.id, queryFilters);
       setTransactions(data || []);
       setTotal(count || 0);
     } catch (error) {
@@ -60,13 +78,8 @@ export default function TransactionHistoryPage() {
     setPage(1);
   };
 
-  const handleDateRange = ({ from, to }) => {
-    setFilters(prev => ({ ...prev, dateFrom: from, dateTo: to }));
-    setPage(1);
-  };
-
   const clearFilters = () => {
-    setFilters({ search: '', type: '', dateFrom: '', dateTo: '' });
+    setFilters({ search: '', type: '', startDate: todayDate, endDate: todayDate });
     setPage(1);
   };
 
@@ -80,7 +93,7 @@ export default function TransactionHistoryPage() {
       {/* Filters */}
       <Card>
         <CardContent className="py-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
               <Input
@@ -92,14 +105,25 @@ export default function TransactionHistoryPage() {
             </div>
             <Select
               value={filters.type}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
+              onValueChange={(val) => handleFilterChange('type', val === 'all' ? '' : val)}
             >
-              <option value="">All Types</option>
-              {Object.entries(TRANSACTION_TYPES).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.entries(TRANSACTION_TYPES).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-            <DateRangePicker onChange={handleDateRange} />
+            <DateRangePicker
+              className="md:col-span-2"
+              startDate={filters.startDate}
+              endDate={filters.endDate}
+              onStartDateChange={(val) => handleFilterChange('startDate', val)}
+              onEndDateChange={(val) => handleFilterChange('endDate', val)}
+            />
             <Button variant="outline" onClick={clearFilters}>
               Clear Filters
             </Button>
