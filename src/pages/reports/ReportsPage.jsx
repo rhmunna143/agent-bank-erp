@@ -346,32 +346,6 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Expense Breakdown by Category */}
-          {showExpenses &&
-            reportData.expensesByCategory &&
-            Object.keys(reportData.expensesByCategory).length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Expenses by Category</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {Object.entries(reportData.expensesByCategory).map(([cat, amount]) => (
-                      <div
-                        key={cat}
-                        className="flex justify-between items-center py-2 border-b border-[var(--color-border)]"
-                      >
-                        <span className="text-sm">{cat}</span>
-                        <span className="text-sm font-semibold">
-                          {formatCurrency(amount, currencySymbol)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
           {/* Transaction Details */}
           {showTransactions &&
             reportData.transactions &&
@@ -388,7 +362,8 @@ export default function ReportsPage() {
                           <th className="text-left py-2 px-3">Date</th>
                           <th className="text-left py-2 px-3">Type</th>
                           <th className="text-left py-2 px-3">Customer</th>
-                          <th className="text-left py-2 px-3">Notes</th>
+                          <th className="text-left py-2 px-3">Account No.</th>
+                          <th className="text-left py-2 px-3">Mother A/C</th>
                           <th className="text-right py-2 px-3">Amount</th>
                         </tr>
                       </thead>
@@ -400,9 +375,10 @@ export default function ReportsPage() {
                               {txn.type?.replace('_', ' ')}
                             </td>
                             <td className="py-2 px-3">
-                              {txn.customer_name || txn.customer_account || '-'}
+                              {txn.customer_name || '-'}
                             </td>
-                            <td className="py-2 px-3">{txn.notes || '-'}</td>
+                            <td className="py-2 px-3">{txn.customer_account || '-'}</td>
+                            <td className="py-2 px-3">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
                             <td className="py-2 px-3 text-right">
                               {formatCurrency(txn.amount, currencySymbol)}
                             </td>
@@ -430,6 +406,7 @@ export default function ReportsPage() {
                         <th className="text-left py-2 px-3">Category</th>
                         <th className="text-left py-2 px-3">Description</th>
                         <th className="text-left py-2 px-3">Deducted From</th>
+                        <th className="text-left py-2 px-3">Account</th>
                         <th className="text-right py-2 px-3">Amount</th>
                       </tr>
                     </thead>
@@ -443,6 +420,9 @@ export default function ReportsPage() {
                           <td className="py-2 px-3">{exp.description || '-'}</td>
                           <td className="py-2 px-3 capitalize">
                             {exp.deduct_from?.replace('_', ' ') || '-'}
+                          </td>
+                          <td className="py-2 px-3">
+                            {exp.mother_accounts?.name || exp.mother_accounts?.account_number || exp.profit_accounts?.name || '-'}
                           </td>
                           <td className="py-2 px-3 text-right">
                             {formatCurrency(exp.amount, currencySymbol)}

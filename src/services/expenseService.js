@@ -4,7 +4,7 @@ export const expenseService = {
   async getAll(bankId, filters = {}) {
     let query = supabase
       .from('expenses')
-      .select('*, expense_categories(name)', { count: 'exact' })
+      .select('*, expense_categories(name), mother_accounts(name, account_number), profit_accounts(name)', { count: 'exact' })
       .eq('bank_id', bankId)
       .order('created_at', { ascending: false });
 

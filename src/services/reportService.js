@@ -40,12 +40,16 @@ export const reportService = {
 
     const [transactions, cashIns, expensesResult, dailyLogs, handCash] = await Promise.all(promises);
 
-    const txnData = transactions.data || transactions || [];
+    // Include deposit, withdrawal and cash_in in transaction details.
+    const allTxn = transactions.data || transactions || [];
+    const cashInTxns = cashIns || [];
+    // Merge main transactions with cash-in records, sort by date descending
+    const txnData = [...allTxn, ...cashInTxns]
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const expensesData = expensesResult.data || expensesResult || [];
 
     const depositTxns = txnData.filter((t) => t.type === 'deposit');
     const withdrawalTxns = txnData.filter((t) => t.type === 'withdrawal');
-    const cashInTxns = cashIns || [];
 
     const totalDeposits = depositTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const totalWithdrawals = withdrawalTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
