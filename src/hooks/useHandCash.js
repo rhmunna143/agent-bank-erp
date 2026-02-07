@@ -8,7 +8,10 @@ export function useHandCash() {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!bankId) return;
+    if (!bankId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await handCashService.get(bankId);

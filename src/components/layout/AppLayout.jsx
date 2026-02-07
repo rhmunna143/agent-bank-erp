@@ -9,23 +9,23 @@ import { FullPageSpinner } from '@/components/common/LoadingSpinner';
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user } = useAuthStore();
-  const { bank, loading: bankLoading, loadBank } = useBankStore();
+  const { bank, loading: bankLoading, loaded: bankLoaded, loadBank } = useBankStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user && !bank) {
+    if (user && !bank && !bankLoaded) {
       loadBank(user.id);
     }
-  }, [user, bank, loadBank]);
+  }, [user, bank, bankLoaded, loadBank]);
 
-  // If bank finished loading and no bank found, redirect to create
+  // Only redirect after loadBank has actually completed and found no bank
   useEffect(() => {
-    if (!bankLoading && !bank && user) {
+    if (bankLoaded && !bank && user) {
       navigate('/create-bank');
     }
-  }, [bankLoading, bank, user, navigate]);
+  }, [bankLoaded, bank, user, navigate]);
 
-  if (bankLoading) return <FullPageSpinner />;
+  if (bankLoading || !bankLoaded) return <FullPageSpinner />;
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">

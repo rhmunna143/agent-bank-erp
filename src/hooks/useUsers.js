@@ -8,7 +8,7 @@ export function useUsers() {
   const [loading, setLoading] = useState(true);
 
   const fetchMembers = useCallback(async () => {
-    if (!bankId) return;
+    if (!bankId) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await userService.getMembers(bankId);

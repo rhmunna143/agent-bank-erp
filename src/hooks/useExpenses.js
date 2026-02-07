@@ -8,7 +8,7 @@ export function useExpenses(filters = {}) {
   const [loading, setLoading] = useState(true);
 
   const fetchExpenses = useCallback(async () => {
-    if (!bankId) return;
+    if (!bankId) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await expenseService.getAll(bankId, filters);

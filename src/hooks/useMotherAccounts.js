@@ -8,7 +8,10 @@ export function useMotherAccounts() {
   const [loading, setLoading] = useState(true);
 
   const fetchAccounts = useCallback(async () => {
-    if (!bankId) return;
+    if (!bankId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await motherAccountService.getAll(bankId);

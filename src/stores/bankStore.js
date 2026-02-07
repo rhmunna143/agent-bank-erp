@@ -6,6 +6,7 @@ export const useBankStore = create((set, get) => ({
   userRole: null,
   expenseCategories: [],
   loading: true,
+  loaded: false,
 
   loadBank: async (userId) => {
     set({ loading: true });
@@ -14,14 +15,14 @@ export const useBankStore = create((set, get) => ({
       if (result) {
         const { userRole, ...bank } = result;
         const categories = await bankService.getExpenseCategories(bank.id);
-        set({ bank, userRole, expenseCategories: categories, loading: false });
+        set({ bank, userRole, expenseCategories: categories, loading: false, loaded: true });
         return bank;
       }
-      set({ bank: null, userRole: null, loading: false });
+      set({ bank: null, userRole: null, loading: false, loaded: true });
       return null;
     } catch (error) {
       console.error('Load bank error:', error);
-      set({ bank: null, userRole: null, loading: false });
+      set({ bank: null, userRole: null, loading: false, loaded: true });
       return null;
     }
   },
