@@ -37,10 +37,11 @@ export const ROLES = {
 };
 
 export const REPORT_PERIODS = {
-  WEEKLY: 'weekly',
-  MONTHLY: 'monthly',
-  YEARLY: 'yearly',
-  CUSTOM: 'custom',
+  today: 'Today',
+  week: 'Last 7 Days',
+  month: 'This Month',
+  quarter: 'Last 3 Months',
+  custom: 'Custom Range',
 };
 
 export const ITEMS_PER_PAGE = 20;

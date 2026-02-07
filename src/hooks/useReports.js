@@ -7,11 +7,11 @@ export function useReports() {
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const generateReport = useCallback(async (startDate, endDate) => {
+  const generateReport = useCallback(async (startDate, endDate, reportType = 'full') => {
     if (!bankId) return null;
     setLoading(true);
     try {
-      const data = await reportService.generateReportData(bankId, startDate, endDate);
+      const data = await reportService.generateReportData(bankId, startDate, endDate, reportType);
       setReportData(data);
       return data;
     } catch (error) {

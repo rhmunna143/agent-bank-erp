@@ -74,9 +74,10 @@ export const dailyLogService = {
           .gte('created_at', startOfDay)
           .lte('created_at', endOfDay),
         supabase
-          .from('cash_in_transactions')
+          .from('transactions')
           .select('amount')
           .eq('bank_id', bankId)
+          .eq('type', 'cash_in')
           .gte('created_at', startOfDay)
           .lte('created_at', endOfDay),
         supabase

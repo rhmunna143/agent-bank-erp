@@ -142,7 +142,7 @@ export const transactionService = {
   async getExpenses(bankId, filters = {}) {
     let query = supabase
       .from('expenses')
-      .select('*, expense_categories(name), profiles!expenses_performed_by_fkey(full_name)')
+      .select('*, expense_categories(name)')
       .eq('bank_id', bankId)
       .order('created_at', { ascending: false });
 

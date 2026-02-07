@@ -20,11 +20,11 @@ function SummaryCard({ title, value, icon: Icon, color = 'primary', trend }) {
   };
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4 md:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs md:text-sm text-[var(--color-text-muted)]">{title}</p>
-          <p className="text-lg md:text-2xl font-bold text-[var(--color-text)] mt-1">{value}</p>
+    <div className="rounded-lg border border-border bg-surface p-3 md:p-4 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs md:text-sm text-[var(--color-text-muted)] truncate">{title}</p>
+          <p className="text-sm md:text-lg lg:text-xl font-bold text-[var(--color-text)] mt-1 truncate" title={value}>{value}</p>
           {trend && (
             <p className={`text-xs mt-1 ${trend >= 0 ? 'text-success' : 'text-danger'}`}>
               {trend >= 0 ? '+' : ''}{trend}% from yesterday
@@ -89,7 +89,7 @@ export function SummaryCards({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
       {cards.map((card) => (
         <SummaryCard key={card.title} {...card} />
       ))}
