@@ -17,6 +17,22 @@ BEGIN
   END IF;
 END $$;
 
+-- Step 0a2: Update expenses.deduct_from CHECK constraint to allow mother_account and profit_account
+ALTER TABLE public.expenses DROP CONSTRAINT IF EXISTS expenses_deduct_from_check;
+ALTER TABLE public.expenses ADD CONSTRAINT expenses_deduct_from_check
+  CHECK (deduct_from IN ('hand_cash', 'profit_account', 'mother_account', 'profit'));
+
+-- Step 0a3: Add mother_account_id column to expenses if not exists
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'expenses' AND column_name = 'mother_account_id'
+  ) THEN
+    ALTER TABLE public.expenses ADD COLUMN mother_account_id UUID REFERENCES public.mother_accounts(id);
+  END IF;
+END $$;
+
 -- Step 0b: Update the process_cash_in RPC to support target account selection
 CREATE OR REPLACE FUNCTION public.process_cash_in(
   p_bank_id UUID,
@@ -149,6 +165,36 @@ BEGIN
   END IF;
 
   RETURN v_txn_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Step 0e: Update process_expense — support mother_account deduction
+CREATE OR REPLACE FUNCTION public.process_expense(
+  p_bank_id UUID,
+  p_amount NUMERIC,
+  p_category_id UUID,
+  p_deduct_from TEXT,
+  p_profit_account_id UUID DEFAULT NULL,
+  p_mother_account_id UUID DEFAULT NULL,
+  p_description TEXT DEFAULT NULL,
+  p_receipt_url TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+  v_expense_id UUID;
+BEGIN
+  INSERT INTO public.expenses (bank_id, amount, category_id, deduct_from, profit_account_id, mother_account_id, description, receipt_url, performed_by)
+  VALUES (p_bank_id, p_amount, p_category_id, p_deduct_from, p_profit_account_id, p_mother_account_id, p_description, p_receipt_url, auth.uid())
+  RETURNING id INTO v_expense_id;
+
+  IF p_deduct_from = 'hand_cash' THEN
+    UPDATE public.hand_cash_accounts SET balance = balance - p_amount WHERE bank_id = p_bank_id;
+  ELSIF p_deduct_from = 'profit_account' AND p_profit_account_id IS NOT NULL THEN
+    UPDATE public.profit_accounts SET balance = balance - p_amount WHERE id = p_profit_account_id;
+  ELSIF p_deduct_from = 'mother_account' AND p_mother_account_id IS NOT NULL THEN
+    UPDATE public.mother_accounts SET balance = balance - p_amount WHERE id = p_mother_account_id;
+  END IF;
+
+  RETURN v_expense_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

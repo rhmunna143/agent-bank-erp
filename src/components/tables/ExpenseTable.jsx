@@ -23,7 +23,6 @@ export function ExpenseTable({ expenses = [] }) {
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Particulars</th>
             <th className="text-right py-3 px-4 font-medium text-[var(--color-text-muted)]">Amount</th>
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Deducted From</th>
-            <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">By</th>
           </tr>
         </thead>
         <tbody>
@@ -36,16 +35,13 @@ export function ExpenseTable({ expenses = [] }) {
                 </span>
               </td>
               <td className="py-3 px-4 text-[var(--color-text-muted)]">
-                {expense.particulars || '-'}
+                {expense.description || '-'}
               </td>
               <td className="py-3 px-4 text-right font-medium text-danger">
                 -{formatCurrency(expense.amount, currencySymbol)}
               </td>
               <td className="py-3 px-4 text-xs">
-                {expense.deducted_from_type?.replace('_', ' ')}
-              </td>
-              <td className="py-3 px-4 text-xs text-[var(--color-text-muted)]">
-                {expense.profiles?.full_name || 'Unknown'}
+                {expense.deduct_from?.replace('_', ' ') || '-'}
               </td>
             </tr>
           ))}

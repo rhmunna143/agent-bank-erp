@@ -4,7 +4,7 @@ import { ExpenseForm } from '@/components/forms/ExpenseForm';
 import { ExpenseTable } from '@/components/tables/ExpenseTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { DateRangePicker } from '@/components/common/DateRangePicker';
@@ -12,15 +12,34 @@ import { expenseService } from '@/services/expenseService';
 import { transactionService } from '@/services/transactionService';
 import { useTransactionStore } from '@/stores/transactionStore';
 import { useHandCash } from '@/hooks/useHandCash';
+import { useMotherAccounts } from '@/hooks/useMotherAccounts';
 import { useProfitAccounts } from '@/hooks/useProfitAccounts';
 import { ITEMS_PER_PAGE } from '@/utils/constants';
 import { Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+function getThreeMonthsAgo() {
+  const d = new Date();
+  d.setMonth(d.getMonth() - 3);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getToday() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function ExpensesPage() {
   const { bank, currencySymbol, categories } = useBank();
   const { triggerRefresh } = useTransactionStore();
   const { handCash, refresh: refreshHC } = useHandCash();
+  const { accounts: motherAccounts, refresh: refreshMA } = useMotherAccounts();
   const { accounts: profitAccounts, refresh: refreshPA } = useProfitAccounts();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,20 +47,23 @@ export default function ExpensesPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [startDate, setStartDate] = useState(getThreeMonthsAgo());
+  const [endDate, setEndDate] = useState(getToday());
 
   const fetchExpenses = useCallback(async () => {
     if (!bank?.id) return;
     setLoading(true);
     try {
       const offset = (page - 1) * ITEMS_PER_PAGE;
-      const { data, count } = await expenseService.getAll(bank.id, {
+      const filters = {
         limit: ITEMS_PER_PAGE,
         offset,
-        category_id: categoryFilter || undefined,
-        dateFrom: dateRange.from || undefined,
-        dateTo: dateRange.to || undefined,
-      });
+      };
+      if (categoryFilter) filters.categoryId = categoryFilter;
+      if (startDate) filters.startDate = `${startDate}T00:00:00`;
+      if (endDate) filters.endDate = `${endDate}T23:59:59`;
+
+      const { data, count } = await expenseService.getAll(bank.id, filters);
       setExpenses(data || []);
       setTotal(count || 0);
     } catch (error) {
@@ -49,7 +71,7 @@ export default function ExpensesPage() {
     } finally {
       setLoading(false);
     }
-  }, [bank?.id, page, categoryFilter, dateRange]);
+  }, [bank?.id, page, categoryFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchExpenses();
@@ -63,6 +85,7 @@ export default function ExpensesPage() {
         amount: data.amount,
         category_id: data.category_id,
         deduct_from: data.deducted_from_type,
+        mother_account_id: data.deducted_from_type === 'mother_account' ? data.deducted_from_id : null,
         profit_account_id: data.deducted_from_type === 'profit_account' ? data.deducted_from_id : null,
         description: data.particulars || null,
         receipt_url: null,
@@ -70,6 +93,7 @@ export default function ExpensesPage() {
       toast.success('Expense recorded!');
       fetchExpenses();
       refreshHC();
+      refreshMA();
       refreshPA();
       triggerRefresh();
     } catch (error) {
@@ -100,7 +124,9 @@ export default function ExpensesPage() {
             onSubmit={handleRecordExpense}
             loading={submitting}
             categories={categories}
+            motherAccounts={motherAccounts}
             profitAccounts={profitAccounts}
+            handCashId={handCash?.id}
           />
         </CardContent>
       </Card>
@@ -108,18 +134,29 @@ export default function ExpensesPage() {
       {/* Filters */}
       <Card>
         <CardContent className="py-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <Select
               value={categoryFilter}
-              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+              onValueChange={(val) => { setCategoryFilter(val === 'all' ? '' : val); setPage(1); }}
             >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
+              <SelectTrigger>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
-            <DateRangePicker onChange={(range) => { setDateRange(range); setPage(1); }} />
-            <Button variant="outline" onClick={() => { setCategoryFilter(''); setDateRange({ from: '', to: '' }); setPage(1); }}>
+            <DateRangePicker
+              className="md:col-span-2"
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={(val) => { setStartDate(val); setPage(1); }}
+              onEndDateChange={(val) => { setEndDate(val); setPage(1); }}
+            />
+            <Button variant="outline" onClick={() => { setCategoryFilter(''); setStartDate(getThreeMonthsAgo()); setEndDate(getToday()); setPage(1); }}>
               Clear Filters
             </Button>
           </div>

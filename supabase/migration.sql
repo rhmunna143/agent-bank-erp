@@ -110,8 +110,9 @@ CREATE TABLE IF NOT EXISTS public.expenses (
   bank_id UUID NOT NULL REFERENCES public.banks(id) ON DELETE CASCADE,
   amount NUMERIC(15,2) NOT NULL,
   category_id UUID REFERENCES public.expense_categories(id),
-  deduct_from TEXT NOT NULL DEFAULT 'hand_cash' CHECK (deduct_from IN ('hand_cash', 'profit')),
+  deduct_from TEXT NOT NULL DEFAULT 'hand_cash' CHECK (deduct_from IN ('hand_cash', 'profit_account', 'mother_account')),
   profit_account_id UUID REFERENCES public.profit_accounts(id),
+  mother_account_id UUID REFERENCES public.mother_accounts(id),
   description TEXT,
   receipt_url TEXT,
   performed_by UUID REFERENCES auth.users(id),
@@ -464,20 +465,23 @@ CREATE OR REPLACE FUNCTION public.process_expense(
   p_category_id UUID,
   p_deduct_from TEXT,
   p_profit_account_id UUID DEFAULT NULL,
+  p_mother_account_id UUID DEFAULT NULL,
   p_description TEXT DEFAULT NULL,
   p_receipt_url TEXT DEFAULT NULL
 ) RETURNS UUID AS $$
 DECLARE
   v_expense_id UUID;
 BEGIN
-  INSERT INTO public.expenses (bank_id, amount, category_id, deduct_from, profit_account_id, description, receipt_url, performed_by)
-  VALUES (p_bank_id, p_amount, p_category_id, p_deduct_from, p_profit_account_id, p_description, p_receipt_url, auth.uid())
+  INSERT INTO public.expenses (bank_id, amount, category_id, deduct_from, profit_account_id, mother_account_id, description, receipt_url, performed_by)
+  VALUES (p_bank_id, p_amount, p_category_id, p_deduct_from, p_profit_account_id, p_mother_account_id, p_description, p_receipt_url, auth.uid())
   RETURNING id INTO v_expense_id;
 
   IF p_deduct_from = 'hand_cash' THEN
     UPDATE public.hand_cash_accounts SET balance = balance - p_amount WHERE bank_id = p_bank_id;
-  ELSIF p_deduct_from = 'profit' AND p_profit_account_id IS NOT NULL THEN
+  ELSIF p_deduct_from = 'profit_account' AND p_profit_account_id IS NOT NULL THEN
     UPDATE public.profit_accounts SET balance = balance - p_amount WHERE id = p_profit_account_id;
+  ELSIF p_deduct_from = 'mother_account' AND p_mother_account_id IS NOT NULL THEN
+    UPDATE public.mother_accounts SET balance = balance - p_amount WHERE id = p_mother_account_id;
   END IF;
 
   RETURN v_expense_id;

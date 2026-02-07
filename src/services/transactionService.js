@@ -68,6 +68,7 @@ export const transactionService = {
       p_category_id: params.category_id,
       p_deduct_from: params.deduct_from,
       p_profit_account_id: params.profit_account_id || null,
+      p_mother_account_id: params.mother_account_id || null,
       p_description: params.description || null,
       p_receipt_url: params.receipt_url || null,
     });
