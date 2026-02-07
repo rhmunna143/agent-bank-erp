@@ -2,13 +2,25 @@ import { supabase } from './supabaseClient';
 
 export const userService = {
   async getMembers(bankId) {
-    const { data, error } = await supabase
+    const { data: members, error } = await supabase
       .from('bank_members')
-      .select('*, profiles(*)')
+      .select('*')
       .eq('bank_id', bankId)
-      .order('created_at', { ascending: true });
+      .order('joined_at', { ascending: true });
     if (error) throw error;
-    return data;
+    if (!members || members.length === 0) return [];
+
+    // Fetch profiles for all member user_ids
+    const userIds = members.map((m) => m.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', userIds);
+
+    const profileMap = {};
+    (profiles || []).forEach((p) => { profileMap[p.id] = p; });
+
+    return members.map((m) => ({ ...m, profiles: profileMap[m.user_id] || null }));
   },
 
   async inviteUser(bankId, email, fullName, phone, invitedBy) {

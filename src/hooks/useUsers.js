@@ -4,7 +4,7 @@ import { useBank } from './useBank';
 
 export function useUsers() {
   const { bankId } = useBank();
-  const [members, setMembers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMembers = useCallback(async () => {
@@ -12,7 +12,7 @@ export function useUsers() {
     setLoading(true);
     try {
       const data = await userService.getMembers(bankId);
-      setMembers(data);
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching members:', error);
     } finally {
@@ -25,14 +25,14 @@ export function useUsers() {
   }, [fetchMembers]);
 
   return {
-    members,
+    users,
     loading,
     refresh: fetchMembers,
     invite: async (email, fullName, phone, invitedBy) => {
       await userService.inviteUser(bankId, email, fullName, phone, invitedBy);
       await fetchMembers();
     },
-    remove: async (memberId) => {
+    removeMember: async (memberId) => {
       await userService.removeMember(memberId);
       await fetchMembers();
     },
