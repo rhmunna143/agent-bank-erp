@@ -23,40 +23,34 @@ export const userService = {
     return members.map((m) => ({ ...m, profiles: profileMap[m.user_id] || null }));
   },
 
-  async inviteUser(bankId, email, fullName, phone, invitedBy) {
-    // Create user via Supabase Auth admin (requires service role or edge function)
-    // For client-side, we'll use the standard signUp with a temporary password
-    // and the user will reset their password via email
+  async inviteUser(bankId, email, role = 'operator') {
     const tempPassword = Math.random().toString(36).slice(-12) + 'A1!';
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: tempPassword,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: email.split('@')[0] },
       },
     });
 
     if (authError) throw authError;
 
     if (authData.user) {
-      // Update profile
       await supabase
         .from('profiles')
         .upsert({
           id: authData.user.id,
-          full_name: fullName,
-          phone: phone || null,
+          email,
+          full_name: email.split('@')[0],
         });
 
-      // Create bank_members record
       const { error: memberError } = await supabase
         .from('bank_members')
         .insert({
           bank_id: bankId,
           user_id: authData.user.id,
-          role: 'user',
-          invited_by: invitedBy,
+          role: role,
         });
       if (memberError) throw memberError;
     }

@@ -28,8 +28,8 @@ export function useUsers() {
     users,
     loading,
     refresh: fetchMembers,
-    invite: async (email, fullName, phone, invitedBy) => {
-      await userService.inviteUser(bankId, email, fullName, phone, invitedBy);
+    invite: async (email, role) => {
+      await userService.inviteUser(bankId, email, role);
       await fetchMembers();
     },
     removeMember: async (memberId) => {

@@ -320,6 +320,8 @@ CREATE POLICY "Members can view daily logs" ON public.daily_logs FOR SELECT
   USING (bank_id IN (SELECT public.get_my_bank_ids()));
 CREATE POLICY "Members can create daily logs" ON public.daily_logs FOR INSERT
   WITH CHECK (bank_id IN (SELECT public.get_my_bank_ids()));
+CREATE POLICY "Members can update daily logs" ON public.daily_logs FOR UPDATE
+  USING (bank_id IN (SELECT public.get_my_bank_ids()));
 
 -- Alert configs
 CREATE POLICY "Members can view alerts" ON public.alert_configs FOR SELECT

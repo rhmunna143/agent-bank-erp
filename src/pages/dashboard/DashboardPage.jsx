@@ -38,6 +38,7 @@ export default function DashboardPage() {
   });
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [expenseBreakdown, setExpenseBreakdown] = useState([]);
+  const [balanceTrend, setBalanceTrend] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generatingLog, setGeneratingLog] = useState(false);
 
@@ -53,14 +54,28 @@ export default function DashboardPage() {
       if (!bankId) return;
       setLoading(true);
       try {
-        const [summary, txns, expenses] = await Promise.all([
+        const [summary, txns, expenses, logs] = await Promise.all([
           getTodaySummary(),
           getTransactions({ limit: 10 }),
           getExpenses({ limit: 100 }),
+          dailyLogService.getLatest(bankId, 14),
         ]);
 
         if (summary) setTodaySummary(summary);
         if (txns?.data) setRecentTransactions(txns.data);
+
+        // Build balance trend from daily logs
+        if (logs && logs.length > 0) {
+          const trendData = logs
+            .sort((a, b) => a.log_date.localeCompare(b.log_date))
+            .map((log) => ({
+              date: new Date(log.log_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              handCash: parseFloat(log.closing_hand_cash || 0),
+              motherBalance: parseFloat(log.total_deposits || 0) - parseFloat(log.total_withdrawals || 0),
+              profitBalance: parseFloat(log.total_commissions || 0),
+            }));
+          setBalanceTrend(trendData);
+        }
 
         // Build expense breakdown
         if (expenses) {
@@ -148,7 +163,7 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Balance Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <BalanceTrendChart data={[]} />
+            <BalanceTrendChart data={balanceTrend} />
           </CardContent>
         </Card>
 

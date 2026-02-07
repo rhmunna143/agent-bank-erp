@@ -16,9 +16,9 @@ export function BalanceAlert({ alerts }) {
           key={alert.id}
           className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/5 p-4 cursor-pointer hover:bg-warning/10 transition-colors"
           onClick={() => {
-            if (alert.type === 'hand_cash') navigate('/accounts/hand-cash');
-            else if (alert.type === 'mother_account') navigate('/accounts/mother-accounts');
-            else navigate('/accounts/profit-accounts');
+            if (alert.type === 'hand_cash') navigate('/hand-cash');
+            else if (alert.type === 'mother_account') navigate('/mother-accounts');
+            else navigate('/profit-accounts');
           }}
         >
           <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />

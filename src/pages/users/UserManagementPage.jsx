@@ -30,7 +30,7 @@ export default function UserManagementPage() {
     }
     setSubmitting(true);
     try {
-      await invite({ email: inviteEmail, role: inviteRole, bank_id: bank.id });
+      await invite(inviteEmail, inviteRole);
       toast.success('Invitation sent!');
       setShowInvite(false);
       setInviteEmail('');

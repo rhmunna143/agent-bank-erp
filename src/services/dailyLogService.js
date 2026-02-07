@@ -3,50 +3,20 @@ import { supabase } from './supabaseClient';
 export const dailyLogService = {
   async generate(bankId, userId) {
     const today = new Date().toISOString().split('T')[0];
+    const snapshot = await this.getSnapshot(bankId, today);
 
-    // Check if log already exists
-    const { data: existing } = await supabase
-      .from('daily_logs')
-      .select('id')
-      .eq('bank_id', bankId)
-      .eq('log_date', today)
-      .single();
-
-    if (existing) {
-      // Update existing log
-      return this.updateLog(existing.id, bankId, today, userId);
-    }
-
-    return this.createLog(bankId, today, userId);
-  },
-
-  async createLog(bankId, date, userId) {
-    const snapshot = await this.getSnapshot(bankId, date);
-
+    // Use upsert (INSERT ... ON CONFLICT UPDATE) to avoid needing an UPDATE RLS policy
     const { data, error } = await supabase
       .from('daily_logs')
-      .insert({
-        bank_id: bankId,
-        log_date: date,
-        ...snapshot,
-        generated_by: userId,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    return data;
-  },
-
-  async updateLog(logId, bankId, date, userId) {
-    const snapshot = await this.getSnapshot(bankId, date);
-
-    const { data, error } = await supabase
-      .from('daily_logs')
-      .update({
-        ...snapshot,
-        generated_by: userId,
-      })
-      .eq('id', logId)
+      .upsert(
+        {
+          bank_id: bankId,
+          log_date: today,
+          ...snapshot,
+          generated_by: userId,
+        },
+        { onConflict: 'bank_id,log_date' }
+      )
       .select()
       .single();
     if (error) throw error;
@@ -57,7 +27,7 @@ export const dailyLogService = {
     const startOfDay = `${date}T00:00:00.000Z`;
     const endOfDay = `${date}T23:59:59.999Z`;
 
-    const [deposits, withdrawals, cashIns, expenses, handCash, motherAccounts, profitAccounts] =
+    const [deposits, withdrawals, cashIns, expenses, handCash] =
       await Promise.all([
         supabase
           .from('transactions')
@@ -91,15 +61,6 @@ export const dailyLogService = {
           .select('balance')
           .eq('bank_id', bankId)
           .single(),
-        supabase
-          .from('mother_accounts')
-          .select('id, name, account_number, balance')
-          .eq('bank_id', bankId)
-          .eq('is_active', true),
-        supabase
-          .from('profit_accounts')
-          .select('id, name, balance')
-          .eq('bank_id', bankId),
       ]);
 
     const sum = (result) =>
@@ -110,9 +71,8 @@ export const dailyLogService = {
       total_withdrawals: sum(withdrawals),
       total_cash_in: sum(cashIns),
       total_expenses: sum(expenses),
-      hand_cash_balance: handCash.data?.balance || 0,
-      mother_accounts_snapshot: motherAccounts.data || [],
-      profit_accounts_snapshot: profitAccounts.data || [],
+      total_commissions: 0,
+      closing_hand_cash: parseFloat(handCash.data?.balance || 0),
     };
   },
 
