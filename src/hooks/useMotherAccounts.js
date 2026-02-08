@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motherAccountService } from '@/services/motherAccountService';
 import { useBank } from './useBank';
+import { useTransactionStore } from '@/stores/transactionStore';
 
 export function useMotherAccounts() {
   const { bankId } = useBank();
+  const { refreshKey } = useTransactionStore();
+  const location = useLocation();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,11 +25,11 @@ export function useMotherAccounts() {
     } finally {
       setLoading(false);
     }
-  }, [bankId]);
+  }, [bankId, refreshKey]);
 
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+  }, [fetchAccounts, location.pathname]);
 
   const activeAccounts = accounts.filter((a) => a.is_active);
 

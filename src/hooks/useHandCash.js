@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { handCashService } from '@/services/handCashService';
 import { useBank } from './useBank';
+import { useTransactionStore } from '@/stores/transactionStore';
 
 export function useHandCash() {
   const { bankId } = useBank();
+  const { refreshKey } = useTransactionStore();
+  const location = useLocation();
   const [handCash, setHandCash] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,11 +25,11 @@ export function useHandCash() {
     } finally {
       setLoading(false);
     }
-  }, [bankId]);
+  }, [bankId, refreshKey]);
 
   useEffect(() => {
     fetch();
-  }, [fetch]);
+  }, [fetch, location.pathname]);
 
   return {
     handCash,

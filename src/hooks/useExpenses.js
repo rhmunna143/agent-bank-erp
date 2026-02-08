@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { expenseService } from '@/services/expenseService';
 import { useBank } from './useBank';
+import { useTransactionStore } from '@/stores/transactionStore';
 
 export function useExpenses(filters = {}) {
   const { bankId } = useBank();
+  const { refreshKey } = useTransactionStore();
+  const location = useLocation();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,11 +22,11 @@ export function useExpenses(filters = {}) {
     } finally {
       setLoading(false);
     }
-  }, [bankId, JSON.stringify(filters)]);
+  }, [bankId, JSON.stringify(filters), refreshKey]);
 
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+  }, [fetchExpenses, location.pathname]);
 
   return { expenses, loading, refresh: fetchExpenses };
 }
