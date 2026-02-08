@@ -2,8 +2,9 @@ import { formatDate } from '@/utils/dateHelpers';
 import { Button } from '@/components/ui/Button';
 import { Trash2, Shield, User } from 'lucide-react';
 
-export function UserTable({ members = [], currentUserId, onRemove, onRoleChange }) {
-  if (members.length === 0) {
+export function UserTable({ members, users, currentUserId, onRemove, onRoleChange }) {
+  const data = members || users || [];
+  if (data.length === 0) {
     return (
       <div className="text-center py-8 text-sm text-[var(--color-text-muted)]">
         No members found
@@ -25,7 +26,7 @@ export function UserTable({ members = [], currentUserId, onRemove, onRoleChange 
           </tr>
         </thead>
         <tbody>
-          {members.map((member) => {
+          {data.map((member) => {
             const isCurrentUser = member.user_id === currentUserId;
             const isAdmin = member.role === 'admin';
 

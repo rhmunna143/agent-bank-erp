@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useBank } from '@/hooks/useBank';
 import { useAuthStore } from '@/stores/authStore';
 import { BankForm } from '@/components/forms/BankForm';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/Label';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { bankService } from '@/services/bankService';
 import { backupService } from '@/services/backupService';
-import { Settings, Save, Plus, Trash2, Download, Upload, AlertTriangle, HardDrive, RotateCcw } from 'lucide-react';
+import { Settings, Save, Plus, Trash2, Download, Upload, AlertTriangle, HardDrive, RotateCcw, FileDown, FileUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function BankSettingsPage() {
@@ -23,6 +23,10 @@ export default function BankSettingsPage() {
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [restoringId, setRestoringId] = useState(null);
   const [resetting, setResetting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingSnapshot, setDownloadingSnapshot] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (bank?.id) fetchBackups();
@@ -116,6 +120,53 @@ export default function BankSettingsPage() {
       fetchBackups();
     } catch (error) {
       toast.error('Failed to delete backup');
+    }
+  };
+
+  const handleDownloadBackup = async (backupId) => {
+    setDownloadingId(backupId);
+    try {
+      await backupService.downloadBackup(backupId, bank.name);
+      toast.success('Backup file downloaded!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to download backup');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadSnapshot = async () => {
+    setDownloadingSnapshot(true);
+    try {
+      await backupService.downloadCurrentSnapshot(bank.id, bank.name, user.id);
+      toast.success('Snapshot downloaded!');
+      fetchBackups();
+    } catch (error) {
+      toast.error(error.message || 'Failed to download snapshot');
+    } finally {
+      setDownloadingSnapshot(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be selected again
+    e.target.value = '';
+
+    if (!window.confirm('Restore from uploaded file?\n\nThis will REPLACE all current data. This cannot be undone.')) return;
+
+    setUploadingFile(true);
+    try {
+      const text = await file.text();
+      const backupData = backupService.parseBackupFile(text);
+      await backupService.restoreFromFile(bank.id, backupData);
+      await refreshBank();
+      toast.success('Data restored from file!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to restore from file');
+    } finally {
+      setUploadingFile(false);
     }
   };
 
@@ -217,12 +268,31 @@ export default function BankSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-[var(--color-text-muted)]">
-            Create backups of all bank data. Up to 3 most recent backups are kept online.
+            Create backups of all bank data. Up to 3 most recent backups are kept online. You can also download backups as files or restore from uploaded files.
           </p>
-          <Button onClick={handleCreateBackup} disabled={creatingBackup}>
-            <Download className="mr-2 h-4 w-4" />
-            {creatingBackup ? 'Creating Backup...' : 'Create Backup Now'}
-          </Button>
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleCreateBackup} disabled={creatingBackup}>
+              <Download className="mr-2 h-4 w-4" />
+              {creatingBackup ? 'Creating...' : 'Create Online Backup'}
+            </Button>
+            <Button variant="outline" onClick={handleDownloadSnapshot} disabled={downloadingSnapshot}>
+              <FileDown className="mr-2 h-4 w-4" />
+              {downloadingSnapshot ? 'Downloading...' : 'Download Backup File'}
+            </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile}>
+              <FileUp className="mr-2 h-4 w-4" />
+              {uploadingFile ? 'Restoring...' : 'Restore from File'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+          </div>
 
           {loadingBackups ? (
             <LoadingSpinner className="h-20" />
@@ -243,6 +313,15 @@ export default function BankSettingsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownloadBackup(backup.id)}
+                      disabled={downloadingId === backup.id}
+                      title="Download as file"
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

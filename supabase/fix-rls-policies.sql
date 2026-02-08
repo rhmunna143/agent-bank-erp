@@ -545,9 +545,9 @@ BEGIN
   END LOOP;
 
   FOR v_item IN SELECT * FROM jsonb_array_elements(v_backup->'profit_accounts') LOOP
-    INSERT INTO public.profit_accounts (id, bank_id, name, account_number, balance, created_at)
-    VALUES ((v_item->>'id')::uuid, p_bank_id, v_item->>'name', v_item->>'account_number', (v_item->>'balance')::numeric, (v_item->>'created_at')::timestamptz)
-    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, account_number = EXCLUDED.account_number, balance = EXCLUDED.balance;
+    INSERT INTO public.profit_accounts (id, bank_id, name, balance, created_at)
+    VALUES ((v_item->>'id')::uuid, p_bank_id, v_item->>'name', (v_item->>'balance')::numeric, (v_item->>'created_at')::timestamptz)
+    ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, balance = EXCLUDED.balance;
   END LOOP;
 
   FOR v_item IN SELECT * FROM jsonb_array_elements(v_backup->'expense_categories') LOOP
