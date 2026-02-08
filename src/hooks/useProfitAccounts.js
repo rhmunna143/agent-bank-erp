@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { profitAccountService } from '@/services/profitAccountService';
 import { useBank } from './useBank';
@@ -10,26 +10,34 @@ export function useProfitAccounts() {
   const location = useLocation();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const fetchAccounts = useCallback(async () => {
     if (!bankId) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!hasFetched.current) setLoading(true);
     try {
       const data = await profitAccountService.getAll(bankId);
       setAccounts(data);
+      hasFetched.current = true;
     } catch (error) {
       console.error('Error fetching profit accounts:', error);
     } finally {
       setLoading(false);
     }
-  }, [bankId, refreshKey]);
+  }, [bankId]);
 
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts, location.pathname]);
+  }, [fetchAccounts]);
+
+  useEffect(() => {
+    if (hasFetched.current) {
+      fetchAccounts();
+    }
+  }, [refreshKey, location.pathname]);
 
   return {
     accounts,

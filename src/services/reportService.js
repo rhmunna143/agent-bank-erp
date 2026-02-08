@@ -2,6 +2,7 @@ import { transactionService } from './transactionService';
 import { expenseService } from './expenseService';
 import { dailyLogService } from './dailyLogService';
 import { handCashService } from './handCashService';
+import { motherAccountService } from './motherAccountService';
 
 export const reportService = {
   async generateReportData(bankId, startDate, endDate, reportType = 'full') {
@@ -13,14 +14,13 @@ export const reportService = {
 
     const promises = [];
 
-    // Transactions (deposits, withdrawals, cash_in)
+    // Transactions (deposits, withdrawals, cash_in) — single query gets ALL types
     if (includeTransactions) {
       promises.push(
         transactionService.getTransactions(bankId, { startDate: startISO, endDate: endISO, limit: 5000 }),
-        transactionService.getCashInTransactions(bankId, { startDate: startISO, endDate: endISO }),
       );
     } else {
-      promises.push(Promise.resolve({ data: [] }), Promise.resolve([]));
+      promises.push(Promise.resolve({ data: [] }));
     }
 
     // Expenses
@@ -32,24 +32,23 @@ export const reportService = {
       promises.push(Promise.resolve({ data: [] }));
     }
 
-    // Daily logs + hand cash
+    // Daily logs + hand cash + mother accounts
     promises.push(
       dailyLogService.getByDateRange(bankId, startDate, endDate),
       handCashService.get(bankId),
+      motherAccountService.getAll(bankId),
     );
 
-    const [transactions, cashIns, expensesResult, dailyLogs, handCash] = await Promise.all(promises);
+    const [transactions, expensesResult, dailyLogs, handCash, motherAccounts] = await Promise.all(promises);
 
-    // Include deposit, withdrawal and cash_in in transaction details.
-    const allTxn = transactions.data || transactions || [];
-    const cashInTxns = cashIns || [];
-    // Merge main transactions with cash-in records, sort by date descending
-    const txnData = [...allTxn, ...cashInTxns]
+    // All transactions come from a single query — no duplicates
+    const txnData = (transactions.data || transactions || [])
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const expensesData = expensesResult.data || expensesResult || [];
 
     const depositTxns = txnData.filter((t) => t.type === 'deposit');
     const withdrawalTxns = txnData.filter((t) => t.type === 'withdrawal');
+    const cashInTxns = txnData.filter((t) => t.type === 'cash_in');
 
     const totalDeposits = depositTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
     const totalWithdrawals = withdrawalTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
@@ -64,6 +63,16 @@ export const reportService = {
       expensesByCategory[catName] += parseFloat(e.amount);
     });
 
+    // Mother account balances
+    const motherAccountBalances = (motherAccounts || []).map((ma) => ({
+      id: ma.id,
+      name: ma.name,
+      account_number: ma.account_number,
+      balance: parseFloat(ma.balance || 0),
+      is_active: ma.is_active,
+    }));
+    const totalMotherBalance = motherAccountBalances.reduce((sum, ma) => sum + ma.balance, 0);
+
     return {
       reportType,
       totalDeposits,
@@ -71,6 +80,8 @@ export const reportService = {
       totalCashIn,
       totalExpenses,
       handCashBalance: parseFloat(handCash?.balance || 0),
+      motherAccountBalances,
+      totalMotherBalance,
       netFlow: totalDeposits - totalWithdrawals + totalCashIn - totalExpenses,
       transactions: txnData,
       deposits: depositTxns,

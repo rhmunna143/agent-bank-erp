@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { expenseService } from '@/services/expenseService';
 import { useBank } from './useBank';
@@ -10,23 +10,32 @@ export function useExpenses(filters = {}) {
   const location = useLocation();
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
+  const filtersKey = JSON.stringify(filters);
 
   const fetchExpenses = useCallback(async () => {
     if (!bankId) { setLoading(false); return; }
-    setLoading(true);
+    if (!hasFetched.current) setLoading(true);
     try {
       const data = await expenseService.getAll(bankId, filters);
       setExpenses(data);
+      hasFetched.current = true;
     } catch (error) {
       console.error('Error fetching expenses:', error);
     } finally {
       setLoading(false);
     }
-  }, [bankId, JSON.stringify(filters), refreshKey]);
+  }, [bankId, filtersKey]);
 
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses, location.pathname]);
+  }, [fetchExpenses]);
+
+  useEffect(() => {
+    if (hasFetched.current) {
+      fetchExpenses();
+    }
+  }, [refreshKey, location.pathname]);
 
   return { expenses, loading, refresh: fetchExpenses };
 }

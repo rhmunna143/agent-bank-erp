@@ -38,7 +38,7 @@ export function MotherAccountForm({ defaultValues, onSubmit, loading = false, is
 
         <div className="space-y-2">
           <Label>Account Number *</Label>
-          <Input {...register('account_number')} placeholder="e.g., 1234567890" disabled={isEdit} />
+          <Input {...register('account_number')} placeholder="e.g., 1234567890" />
           {errors.account_number && (
             <p className="text-xs text-danger">{errors.account_number.message}</p>
           )}

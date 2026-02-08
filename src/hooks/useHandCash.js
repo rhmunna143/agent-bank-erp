@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { handCashService } from '@/services/handCashService';
 import { useBank } from './useBank';
@@ -10,26 +10,34 @@ export function useHandCash() {
   const location = useLocation();
   const [handCash, setHandCash] = useState(null);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const fetch = useCallback(async () => {
     if (!bankId) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!hasFetched.current) setLoading(true);
     try {
       const data = await handCashService.get(bankId);
       setHandCash(data);
+      hasFetched.current = true;
     } catch (error) {
       console.error('Error fetching hand cash:', error);
     } finally {
       setLoading(false);
     }
-  }, [bankId, refreshKey]);
+  }, [bankId]);
 
   useEffect(() => {
     fetch();
-  }, [fetch, location.pathname]);
+  }, [fetch]);
+
+  useEffect(() => {
+    if (hasFetched.current) {
+      fetch();
+    }
+  }, [refreshKey, location.pathname]);
 
   return {
     handCash,

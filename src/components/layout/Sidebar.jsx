@@ -29,7 +29,7 @@ const navItems = [
   {
     label: 'Accounts',
     children: [
-      { label: 'Mother Accounts', path: '/mother-accounts', icon: Building2, adminOnly: true },
+      { label: 'Mother Accounts', path: '/mother-accounts', icon: Building2 },
       { label: 'Hand Cash', path: '/hand-cash', icon: HandCoins },
       { label: 'Profit Accounts', path: '/profit-accounts', icon: TrendingUp, adminOnly: true },
     ],

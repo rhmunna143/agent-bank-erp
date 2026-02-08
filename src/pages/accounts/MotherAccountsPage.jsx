@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMotherAccounts } from '@/hooks/useMotherAccounts';
 import { useBank } from '@/hooks/useBank';
+import { useAuth } from '@/hooks/useAuth';
 import { MotherAccountForm } from '@/components/forms/MotherAccountForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +14,7 @@ import toast from 'react-hot-toast';
 
 export default function MotherAccountsPage() {
   const { accounts, loading, create, update, toggleActive } = useMotherAccounts();
-  const { currencySymbol } = useBank();
+  const { currencySymbol, isAdmin } = useBank();
   const [showCreate, setShowCreate] = useState(false);
   const [editAccount, setEditAccount] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -60,11 +61,13 @@ export default function MotherAccountsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Mother Accounts</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">Manage your mother accounts</p>
+          <p className="text-sm text-[var(--color-text-muted)]">{isAdmin ? 'Manage your mother accounts' : 'View mother account balances'}</p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Account
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setShowCreate(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add Account
+          </Button>
+        )}
       </div>
 
       {accounts.length === 0 ? (
@@ -81,24 +84,26 @@ export default function MotherAccountsPage() {
             <Card key={account.id} className={!account.is_active ? 'opacity-60' : ''}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-base font-medium">{account.name}</CardTitle>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setEditAccount(account)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleToggleActive(account)}
-                  >
-                    <Power className={`h-4 w-4 ${account.is_active ? 'text-success' : 'text-danger'}`} />
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setEditAccount(account)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleToggleActive(account)}
+                    >
+                      <Power className={`h-4 w-4 ${account.is_active ? 'text-success' : 'text-danger'}`} />
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-[var(--color-text-muted)] mb-2">{account.account_number}</p>

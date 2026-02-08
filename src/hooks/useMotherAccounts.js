@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motherAccountService } from '@/services/motherAccountService';
 import { useBank } from './useBank';
@@ -10,26 +10,37 @@ export function useMotherAccounts() {
   const location = useLocation();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const fetchAccounts = useCallback(async () => {
     if (!bankId) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    // Only show full loading spinner on initial load
+    if (!hasFetched.current) setLoading(true);
     try {
       const data = await motherAccountService.getAll(bankId);
       setAccounts(data);
+      hasFetched.current = true;
     } catch (error) {
       console.error('Error fetching mother accounts:', error);
     } finally {
       setLoading(false);
     }
-  }, [bankId, refreshKey]);
+  }, [bankId]);
 
+  // Fetch on mount and bankId change
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts, location.pathname]);
+  }, [fetchAccounts]);
+
+  // Re-fetch silently on route change or refresh trigger
+  useEffect(() => {
+    if (hasFetched.current) {
+      fetchAccounts();
+    }
+  }, [refreshKey, location.pathname]);
 
   const activeAccounts = accounts.filter((a) => a.is_active);
 

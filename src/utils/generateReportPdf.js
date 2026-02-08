@@ -96,6 +96,14 @@ export function generateReportPdf({
   }
   cards.push({ label: 'Hand Cash (System)', value: fmtCur(reportData.handCashBalance || 0, sym), sub: 'ERP Calculated', color: COLORS.primary });
 
+  // Add mother account balance cards
+  if (reportData.motherAccountBalances && reportData.motherAccountBalances.length > 0) {
+    reportData.motherAccountBalances.forEach((ma) => {
+      cards.push({ label: ma.name, value: fmtCur(ma.balance, sym), sub: ma.account_number || 'Mother A/C', color: COLORS.darkText });
+    });
+    cards.push({ label: 'Total Mother Balance', value: fmtCur(reportData.totalMotherBalance || 0, sym), sub: 'All Accounts', color: COLORS.primary });
+  }
+
   // Render cards as autoTable rows of 3 per row for proper wrapping
   const colsPerRow = 3;
   const cardAreaW = pageW - margin * 2;
@@ -180,27 +188,32 @@ export function generateReportPdf({
     doc.text('Transaction Details', margin, y);
     y += 2;
 
-    const txnRows = reportData.transactions.map((txn) => [
-      fmtDate(txn.created_at),
-      (txn.type || '').replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase()),
-      txn.customer_name || '-',
-      txn.customer_account || '-',
-      txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-',
-      fmtCur(txn.amount, sym),
-    ]);
+    const txnRows = reportData.transactions.map((txn) => {
+      const isCredit = txn.type === 'deposit' || txn.type === 'cash_in';
+      return [
+        fmtDate(txn.created_at),
+        (txn.type || '').replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase()),
+        txn.customer_name || '-',
+        txn.customer_account || '-',
+        txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-',
+        isCredit ? fmtCur(txn.amount, sym) : '-',
+        !isCredit ? fmtCur(txn.amount, sym) : '-',
+      ];
+    });
 
     autoTable(doc, {
       startY: y,
       margin: { left: margin, right: margin },
-      head: [['Date', 'Type', 'Customer', 'Account No.', 'Mother A/C', 'Amount']],
+      head: [['Date', 'Type', 'Customer', 'Account No.', 'Mother A/C', 'Credit', 'Debit']],
       body: txnRows,
       styles: { fontSize: 7.5, cellPadding: 2, overflow: 'ellipsize' },
       headStyles: { fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold', fontSize: 7 },
       columnStyles: {
         0: { cellWidth: 22 },
-        1: { cellWidth: 20 },
-        3: { cellWidth: 26 },
-        5: { halign: 'right', cellWidth: 26 },
+        1: { cellWidth: 18 },
+        3: { cellWidth: 22 },
+        5: { halign: 'right', cellWidth: 22 },
+        6: { halign: 'right', cellWidth: 22 },
       },
       theme: 'plain',
     });

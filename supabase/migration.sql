@@ -373,6 +373,9 @@ BEGIN
   -- Decrease hand cash only (mother account is for reference)
   UPDATE public.hand_cash_accounts SET balance = balance - p_amount WHERE bank_id = p_bank_id;
 
+  -- Increase mother account balance (customer is depositing into their account via the agent)
+  UPDATE public.mother_accounts SET balance = balance + p_amount WHERE id = p_mother_account_id;
+
   -- Add commission to profit
   IF p_commission > 0 THEN
     SELECT id INTO v_profit_account_id FROM public.profit_accounts WHERE bank_id = p_bank_id LIMIT 1;

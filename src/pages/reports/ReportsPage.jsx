@@ -336,6 +336,26 @@ export default function ReportsPage() {
                   <p className="text-xs text-[var(--color-text-muted)]">Current</p>
                 </div>
               </div>
+
+              {/* Mother Account Balances */}
+              {reportData.motherAccountBalances && reportData.motherAccountBalances.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold mb-2">Mother Account Balances</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {reportData.motherAccountBalances.map((ma) => (
+                      <div key={ma.id} className={`p-3 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] ${!ma.is_active ? 'opacity-50' : ''}`}>
+                        <p className="text-xs text-[var(--color-text-muted)]">{ma.name}</p>
+                        <p className="text-sm font-bold">{formatCurrency(ma.balance, currencySymbol)}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">{ma.account_number || ''}</p>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-[var(--color-surface)] rounded-lg border-2 border-[var(--color-accent)]">
+                      <p className="text-xs text-[var(--color-text-muted)]">Total Mother Balance</p>
+                      <p className="text-sm font-bold">{formatCurrency(reportData.totalMotherBalance || 0, currencySymbol)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* Net Flow */}
               <div className="mt-4 p-4 border border-[var(--color-border)] rounded-lg text-center">
                 <p className="text-sm text-[var(--color-text-muted)]">Net Flow</p>
@@ -364,26 +384,33 @@ export default function ReportsPage() {
                           <th className="text-left py-2 px-3">Customer</th>
                           <th className="text-left py-2 px-3">Account No.</th>
                           <th className="text-left py-2 px-3">Mother A/C</th>
-                          <th className="text-right py-2 px-3">Amount</th>
+                          <th className="text-right py-2 px-3">Credit</th>
+                          <th className="text-right py-2 px-3">Debit</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {reportData.transactions.map((txn, i) => (
-                          <tr key={i} className="border-b border-[var(--color-border)]">
-                            <td className="py-2 px-3">{formatDate(txn.created_at)}</td>
-                            <td className="py-2 px-3 capitalize">
-                              {txn.type?.replace('_', ' ')}
-                            </td>
-                            <td className="py-2 px-3">
-                              {txn.customer_name || '-'}
-                            </td>
-                            <td className="py-2 px-3">{txn.customer_account || '-'}</td>
-                            <td className="py-2 px-3">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
-                            <td className="py-2 px-3 text-right">
-                              {formatCurrency(txn.amount, currencySymbol)}
-                            </td>
-                          </tr>
-                        ))}
+                        {reportData.transactions.map((txn, i) => {
+                          const isCredit = txn.type === 'deposit' || txn.type === 'cash_in';
+                          return (
+                            <tr key={i} className="border-b border-[var(--color-border)]">
+                              <td className="py-2 px-3">{formatDate(txn.created_at)}</td>
+                              <td className="py-2 px-3 capitalize">
+                                {txn.type?.replace('_', ' ')}
+                              </td>
+                              <td className="py-2 px-3">
+                                {txn.customer_name || '-'}
+                              </td>
+                              <td className="py-2 px-3">{txn.customer_account || '-'}</td>
+                              <td className="py-2 px-3">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
+                              <td className="py-2 px-3 text-right text-success">
+                                {isCredit ? formatCurrency(txn.amount, currencySymbol) : '-'}
+                              </td>
+                              <td className="py-2 px-3 text-right text-danger">
+                                {!isCredit ? formatCurrency(txn.amount, currencySymbol) : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
