@@ -188,8 +188,12 @@ export function generateReportPdf({
     doc.text('Transaction Details', margin, y);
     y += 2;
 
+    let totalCredit = 0;
+    let totalDebit = 0;
     const txnRows = reportData.transactions.map((txn) => {
       const isCredit = txn.type === 'deposit' || txn.type === 'cash_in';
+      const amt = Number(txn.amount || 0);
+      if (isCredit) totalCredit += amt; else totalDebit += amt;
       return [
         fmtDate(txn.created_at),
         (txn.type || '').replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase()),
@@ -200,6 +204,13 @@ export function generateReportPdf({
         !isCredit ? fmtCur(txn.amount, sym) : '-',
       ];
     });
+
+    // Add total row
+    txnRows.push([
+      { content: 'Total', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: fmtCur(totalCredit, sym), styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: fmtCur(totalDebit, sym), styles: { halign: 'right', fontStyle: 'bold' } },
+    ]);
 
     autoTable(doc, {
       startY: y,

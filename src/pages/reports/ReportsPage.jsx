@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useBank } from '@/hooks/useBank';
 import { useAuth } from '@/hooks/useAuth';
 import { useReports } from '@/hooks/useReports';
+import { useTransactionStore } from '@/stores/transactionStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -39,6 +40,7 @@ export default function ReportsPage() {
   const { bank, currencySymbol } = useBank();
   const { profile } = useAuth();
   const { generateReport, loading } = useReports();
+  const triggerRefresh = useTransactionStore((s) => s.triggerRefresh);
   const [period, setPeriod] = useState('today');
   const [reportType, setReportType] = useState('full');
   const [customFrom, setCustomFrom] = useState('');
@@ -127,7 +129,8 @@ export default function ReportsPage() {
       toast.error('Failed to generate PDF');
     }
     setPrintModalOpen(false);
-  }, [reportData, bank, currencySymbol, reportType, showTransactions, showExpenses, actualHandCash, handCashMatch, profile]);
+    triggerRefresh();
+  }, [reportData, bank, currencySymbol, reportType, showTransactions, showExpenses, actualHandCash, handCashMatch, profile, triggerRefresh]);
 
   return (
     <div className="space-y-6">
@@ -412,6 +415,23 @@ export default function ReportsPage() {
                           );
                         })}
                       </tbody>
+                      <tfoot>
+                        {(() => {
+                          const totalCredit = reportData.transactions.reduce((sum, txn) => {
+                            return (txn.type === 'deposit' || txn.type === 'cash_in') ? sum + Number(txn.amount || 0) : sum;
+                          }, 0);
+                          const totalDebit = reportData.transactions.reduce((sum, txn) => {
+                            return (txn.type !== 'deposit' && txn.type !== 'cash_in') ? sum + Number(txn.amount || 0) : sum;
+                          }, 0);
+                          return (
+                            <tr className="border-t-2 border-[var(--color-border)] font-bold bg-[var(--color-surface)]">
+                              <td colSpan={5} className="py-2 px-3 text-right">Total</td>
+                              <td className="py-2 px-3 text-right text-success">{formatCurrency(totalCredit, currencySymbol)}</td>
+                              <td className="py-2 px-3 text-right text-danger">{formatCurrency(totalDebit, currencySymbol)}</td>
+                            </tr>
+                          );
+                        })()}
+                      </tfoot>
                     </table>
                   </div>
                 </CardContent>
