@@ -7,15 +7,45 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatCurrency } from '@/utils/currency';
-import { Wallet, AlertTriangle, Save } from 'lucide-react';
+import { Wallet, AlertTriangle, Save, Pencil, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function HandCashPage() {
-  const { handCash, loading, updateThreshold } = useHandCash();
+  const { handCash, loading, updateThreshold, updateBalance } = useHandCash();
   const { currencySymbol, role } = useBank();
   const [threshold, setThreshold] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingBalance, setEditingBalance] = useState(false);
+  const [newBalance, setNewBalance] = useState('');
+  const [savingBalance, setSavingBalance] = useState(false);
   const isAdmin = role === 'admin' || role === 'owner';
+
+  const handleEditBalance = () => {
+    setNewBalance(handCash.balance?.toString() || '0');
+    setEditingBalance(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBalance(false);
+    setNewBalance('');
+  };
+
+  const handleSaveBalance = async () => {
+    if (newBalance === '' || isNaN(Number(newBalance))) {
+      toast.error('Enter a valid amount');
+      return;
+    }
+    setSavingBalance(true);
+    try {
+      await updateBalance(Number(newBalance));
+      toast.success('Hand cash balance updated!');
+      setEditingBalance(false);
+    } catch (error) {
+      toast.error('Failed to update balance');
+    } finally {
+      setSavingBalance(false);
+    }
+  };
 
   const handleSaveThreshold = async () => {
     if (!threshold || isNaN(Number(threshold))) {
@@ -57,17 +87,54 @@ export default function HandCashPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Wallet className="h-5 w-5" /> Balance
+              {isAdmin && !editingBalance && (
+                <button
+                  onClick={handleEditBalance}
+                  className="ml-auto p-1.5 rounded-md hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                  title="Edit balance"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-4xl font-bold ${isLow ? 'text-danger' : ''}`}>
-              {formatCurrency(handCash.balance, currencySymbol)}
-            </p>
-            {isLow && (
-              <div className="flex items-center gap-2 mt-3 text-danger text-sm">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Balance is below threshold ({formatCurrency(handCash.low_threshold, currencySymbol)})</span>
+            {editingBalance ? (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="newBalance">New Balance</Label>
+                  <Input
+                    id="newBalance"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter new balance"
+                    value={newBalance}
+                    onChange={(e) => setNewBalance(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveBalance} disabled={savingBalance} size="sm">
+                    <Check className="mr-1 h-4 w-4" /> {savingBalance ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button variant="outline" onClick={handleCancelEdit} disabled={savingBalance} size="sm">
+                    <X className="mr-1 h-4 w-4" /> Cancel
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <>
+                <p className={`text-4xl font-bold ${isLow ? 'text-danger' : ''}`}>
+                  {formatCurrency(handCash.balance, currencySymbol)}
+                </p>
+                {isLow && (
+                  <div className="flex items-center gap-2 mt-3 text-danger text-sm">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span>Balance is below threshold ({formatCurrency(handCash.low_threshold, currencySymbol)})</span>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

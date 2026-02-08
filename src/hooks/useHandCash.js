@@ -36,5 +36,9 @@ export function useHandCash() {
       await handCashService.updateThreshold(bankId, threshold);
       await fetch();
     },
+    updateBalance: async (newBalance) => {
+      await handCashService.updateBalance(bankId, newBalance);
+      await fetch();
+    },
   };
 }
