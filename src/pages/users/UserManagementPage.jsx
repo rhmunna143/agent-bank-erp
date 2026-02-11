@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUsers } from '@/hooks/useUsers';
 import { useBank } from '@/hooks/useBank';
+import { useAuth } from '@/hooks/useAuth';
 import { UserTable } from '@/components/tables/UserTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +18,7 @@ import toast from 'react-hot-toast';
 export default function UserManagementPage() {
   const { users, loading, invite, updateRole, removeMember } = useUsers();
   const { bank } = useBank();
+  const { user } = useAuth();
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('operator');
@@ -91,6 +93,7 @@ export default function UserManagementPage() {
           ) : (
             <UserTable
               users={users}
+              currentUserId={user?.id}
               onRoleChange={handleRoleChange}
               onRemove={handleRemove}
             />

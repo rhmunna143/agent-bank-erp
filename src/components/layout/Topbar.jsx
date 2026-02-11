@@ -1,16 +1,19 @@
-import { Menu, Bell, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, Bell, LogOut, User, ChevronDown, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useBank } from '@/hooks/useBank';
 import { useAlerts } from '@/hooks/useAlerts';
+import { useTransactionStore } from '@/stores/transactionStore';
 
 export function Topbar({ onMenuClick }) {
   const { profile, signOut } = useAuth();
   const { bank } = useBank();
   const { alerts } = useAlerts();
+  const { triggerRefresh } = useTransactionStore();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -44,6 +47,19 @@ export function Topbar({ onMenuClick }) {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        {/* Refresh button */}
+        <button
+          onClick={() => {
+            setSpinning(true);
+            triggerRefresh();
+            setTimeout(() => setSpinning(false), 800);
+          }}
+          className="rounded-md p-2 hover:bg-gray-100"
+          title="Refresh data"
+        >
+          <RefreshCw className={`h-5 w-5 text-[var(--color-text-muted)] transition-transform ${spinning ? 'animate-spin' : ''}`} />
+        </button>
+
         {/* Alerts bell */}
         <button
           onClick={() => navigate('/dashboard')}

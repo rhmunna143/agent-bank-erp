@@ -68,7 +68,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Step 0b: Update process_deposit — only hand cash increases (mother account is reference only)
+-- Step 0b: Update process_deposit — hand cash UP, mother account DOWN
 CREATE OR REPLACE FUNCTION public.process_deposit(
   p_bank_id UUID,
   p_customer_name TEXT,
@@ -87,7 +87,11 @@ BEGIN
   VALUES (p_bank_id, 'deposit', p_amount, p_commission, p_customer_name, p_customer_account, p_mother_account_id, p_reference, p_notes, auth.uid())
   RETURNING id INTO v_txn_id;
 
+  -- Increase hand cash (agent receives physical cash)
   UPDATE public.hand_cash_accounts SET balance = balance + p_amount WHERE bank_id = p_bank_id;
+
+  -- Decrease mother account (money sent from mother account to customer's bank)
+  UPDATE public.mother_accounts SET balance = balance - p_amount WHERE id = p_mother_account_id;
 
   IF p_commission > 0 THEN
     SELECT id INTO v_profit_account_id FROM public.profit_accounts WHERE bank_id = p_bank_id LIMIT 1;
@@ -358,8 +362,11 @@ BEGIN
   -- Adjust balances based on type if amount changed
   IF v_diff <> 0 THEN
     IF v_old.type = 'deposit' THEN
-      -- Deposit: hand cash increases
+      -- Deposit: hand cash increases, mother account decreases
       UPDATE public.hand_cash_accounts SET balance = balance + v_diff WHERE bank_id = v_old.bank_id;
+      IF v_old.mother_account_id IS NOT NULL THEN
+        UPDATE public.mother_accounts SET balance = balance - v_diff WHERE id = v_old.mother_account_id;
+      END IF;
     ELSIF v_old.type = 'withdrawal' THEN
       -- Withdrawal: hand cash decreases (so diff is subtracted)
       UPDATE public.hand_cash_accounts SET balance = balance - v_diff WHERE bank_id = v_old.bank_id;

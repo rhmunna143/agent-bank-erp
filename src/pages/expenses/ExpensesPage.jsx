@@ -16,6 +16,7 @@ import { useMotherAccounts } from '@/hooks/useMotherAccounts';
 import { useProfitAccounts } from '@/hooks/useProfitAccounts';
 import { ITEMS_PER_PAGE } from '@/utils/constants';
 import { Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
+import { EditExpenseDialog } from '@/components/transactions/EditExpenseDialog';
 import toast from 'react-hot-toast';
 
 function getThreeMonthsAgo() {
@@ -49,6 +50,10 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [startDate, setStartDate] = useState(getThreeMonthsAgo());
   const [endDate, setEndDate] = useState(getToday());
+
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const fetchExpenses = useCallback(async () => {
     if (!bank?.id) return;
@@ -101,6 +106,19 @@ export default function ExpensesPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditClick = (expense) => {
+    setEditingExpense(expense);
+    setEditOpen(true);
+  };
+
+  const handleEditSaved = () => {
+    fetchExpenses();
+    refreshHC();
+    refreshMA();
+    refreshPA();
+    triggerRefresh();
   };
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
@@ -179,7 +197,7 @@ export default function ExpensesPage() {
             />
           ) : (
             <>
-              <ExpenseTable expenses={expenses} currencySymbol={currencySymbol} />
+              <ExpenseTable expenses={expenses} currencySymbol={currencySymbol} onEdit={handleEditClick} />
               
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--color-border)]">
@@ -198,6 +216,14 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      <EditExpenseDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        expense={editingExpense}
+        categories={categories}
+        onSaved={handleEditSaved}
+      />
     </div>
   );
 }

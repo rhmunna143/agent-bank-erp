@@ -335,8 +335,11 @@ BEGIN
   VALUES (p_bank_id, 'deposit', p_amount, p_commission, p_customer_name, p_customer_account, p_mother_account_id, p_reference, p_notes, auth.uid())
   RETURNING id INTO v_txn_id;
 
-  -- Increase hand cash only (mother account is for reference)
+  -- Increase hand cash (agent receives physical cash from customer)
   UPDATE public.hand_cash_accounts SET balance = balance + p_amount WHERE bank_id = p_bank_id;
+
+  -- Decrease mother account (money sent from mother account to customer's bank)
+  UPDATE public.mother_accounts SET balance = balance - p_amount WHERE id = p_mother_account_id;
 
   -- Add commission to first profit account (if exists & commission > 0)
   IF p_commission > 0 THEN

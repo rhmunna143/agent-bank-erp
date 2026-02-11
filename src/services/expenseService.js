@@ -42,4 +42,15 @@ export const expenseService = {
     if (error) throw error;
     return data;
   },
+
+  async updateExpense(id, updates) {
+    const { data, error } = await supabase.rpc('update_expense', {
+      p_expense_id: id,
+      p_amount: updates.amount != null ? parseFloat(updates.amount) : null,
+      p_category_id: updates.category_id || null,
+      p_description: updates.description || null,
+    });
+    if (error) throw error;
+    return data;
+  },
 };

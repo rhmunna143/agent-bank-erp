@@ -1,8 +1,10 @@
 import { formatDateTime } from '@/utils/dateHelpers';
 import { formatCurrency } from '@/utils/currency';
 import { useBank } from '@/hooks/useBank';
+import { Button } from '@/components/ui/Button';
+import { Pencil } from 'lucide-react';
 
-export function ExpenseTable({ expenses = [] }) {
+export function ExpenseTable({ expenses = [], onEdit }) {
   const { currencySymbol } = useBank();
 
   if (expenses.length === 0) {
@@ -23,6 +25,7 @@ export function ExpenseTable({ expenses = [] }) {
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Particulars</th>
             <th className="text-right py-3 px-4 font-medium text-[var(--color-text-muted)]">Amount</th>
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Deducted From</th>
+            <th className="text-right py-3 px-4 font-medium text-[var(--color-text-muted)]">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -42,6 +45,16 @@ export function ExpenseTable({ expenses = [] }) {
               </td>
               <td className="py-3 px-4 text-xs">
                 {expense.deduct_from?.replace('_', ' ') || '-'}
+              </td>
+              <td className="py-3 px-4 text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit?.(expense)}
+                  title="Edit expense"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </td>
             </tr>
           ))}
