@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/Label';
 import { Switch } from '@/components/ui/Switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import { numberToWords } from '@/utils/numberToWords';
 
 export function WithdrawForm({ motherAccounts = [], handCashBalance = 0, onSubmit, loading = false, currencySymbol = '৳' }) {
   const {
@@ -69,6 +70,9 @@ export function WithdrawForm({ motherAccounts = [], handCashBalance = 0, onSubmi
             {...register('amount', { valueAsNumber: true })}
             placeholder="0.00"
           />
+          {numberToWords(amount) && (
+            <p className="text-xs text-[var(--color-primary)] italic">{numberToWords(amount)}</p>
+          )}
           {errors.amount && <p className="text-xs text-danger">{errors.amount.message}</p>}
           <p className="text-xs text-[var(--color-text-muted)]">
             Hand Cash Available: {currencySymbol}{handCashBalance.toFixed(2)}
@@ -136,6 +140,9 @@ export function WithdrawForm({ motherAccounts = [], handCashBalance = 0, onSubmi
                     {...register('shortage_deduction_amount', { valueAsNumber: true })}
                     placeholder="Enter amount to cash out from mother account"
                   />
+                  {numberToWords(watch('shortage_deduction_amount')) && (
+                    <p className="text-xs text-[var(--color-primary)] italic">{numberToWords(watch('shortage_deduction_amount'))}</p>
+                  )}
                   <p className="text-xs text-[var(--color-text-muted)]">
                     Hand cash will decrease by: {currencySymbol}
                     {(parseFloat(amount || 0) - parseFloat(watch('shortage_deduction_amount') || 0)).toFixed(2)}

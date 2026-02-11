@@ -9,6 +9,13 @@ const TYPE_CONFIG = {
   cash_in: { label: 'Cash In', icon: Wallet, color: 'bg-primary/10 text-primary', amountColor: 'text-primary', prefix: '+' },
 };
 
+function getFundInto(txn) {
+  if (txn.type !== 'cash_in') return null;
+  if (txn.mother_account_id) return txn.mother_accounts?.name || 'Mother Account';
+  if (txn.profit_account_id) return txn.profit_accounts?.name || 'Profit Account';
+  return 'Hand Cash';
+}
+
 export function TransactionTable({ transactions = [], onEdit }) {
   const { currencySymbol } = useBank();
 
@@ -29,6 +36,8 @@ export function TransactionTable({ transactions = [], onEdit }) {
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Type</th>
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Customer</th>
             <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Account</th>
+            <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Fund Into</th>
+            <th className="text-left py-3 px-4 font-medium text-[var(--color-text-muted)]">Source</th>
             <th className="text-right py-3 px-4 font-medium text-[var(--color-text-muted)]">Amount</th>
           </tr>
         </thead>
@@ -36,6 +45,8 @@ export function TransactionTable({ transactions = [], onEdit }) {
           {transactions.map((txn) => {
             const cfg = TYPE_CONFIG[txn.type] || TYPE_CONFIG.deposit;
             const Icon = cfg.icon;
+            const isCashIn = txn.type === 'cash_in';
+            const fundInto = getFundInto(txn);
             return (
               <tr
                 key={txn.id}
@@ -57,6 +68,12 @@ export function TransactionTable({ transactions = [], onEdit }) {
                 </td>
                 <td className="py-3 px-4 text-xs">
                   {txn.mother_accounts?.name || '—'}
+                </td>
+                <td className="py-3 px-4 text-xs">
+                  {isCashIn ? <span className="text-[var(--color-primary)] font-medium">{fundInto}</span> : '—'}
+                </td>
+                <td className="py-3 px-4 text-xs">
+                  {isCashIn && txn.source ? txn.source : '—'}
                 </td>
                 <td className={`py-3 px-4 text-right font-medium ${cfg.amountColor}`}>
                   {cfg.prefix}{formatCurrency(txn.amount, currencySymbol)}

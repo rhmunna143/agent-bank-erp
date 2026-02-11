@@ -79,7 +79,7 @@ export const transactionService = {
   async getTransactions(bankId, filters = {}) {
     let query = supabase
       .from('transactions')
-      .select('*, mother_accounts(name, account_number), performer:profiles!fk_transactions_performed_by_profiles(full_name)', { count: 'exact' })
+      .select('*, mother_accounts(name, account_number), profit_accounts(name), performer:profiles!fk_transactions_performed_by_profiles(full_name)', { count: 'exact' })
       .eq('bank_id', bankId)
       .order('created_at', { ascending: false });
 

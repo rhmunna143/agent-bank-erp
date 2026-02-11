@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Loader2 } from 'lucide-react';
+import { numberToWords } from '@/utils/numberToWords';
 
 export function ExpenseForm({
   categories = [],
@@ -55,6 +56,9 @@ export function ExpenseForm({
     reset();
   };
 
+  const amountValue = watch('amount');
+  const amountWords = numberToWords(amountValue);
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -85,6 +89,9 @@ export function ExpenseForm({
             {...register('amount', { valueAsNumber: true })}
             placeholder="0.00"
           />
+          {amountWords && (
+            <p className="text-xs text-[var(--color-primary)] italic">{amountWords}</p>
+          )}
           {errors.amount && <p className="text-xs text-danger">{errors.amount.message}</p>}
         </div>
 

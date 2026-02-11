@@ -407,6 +407,8 @@ export default function ReportsPage() {
                           <th className="text-left py-2 px-3">Customer</th>
                           <th className="text-left py-2 px-3">Account No.</th>
                           <th className="text-left py-2 px-3">Mother A/C</th>
+                          <th className="text-left py-2 px-3">Fund Into</th>
+                          <th className="text-left py-2 px-3">Source</th>
                           <th className="text-right py-2 px-3">Credit</th>
                           <th className="text-right py-2 px-3">Debit</th>
                         </tr>
@@ -414,9 +416,13 @@ export default function ReportsPage() {
                       <tbody>
                         {reportData.transactions.map((txn, i) => {
                           const isCredit = txn.type === 'deposit' || txn.type === 'cash_in';
+                          const isCashIn = txn.type === 'cash_in';
+                          const fundInto = isCashIn
+                            ? (txn.mother_account_id ? (txn.mother_accounts?.name || 'Mother Account') : txn.profit_account_id ? (txn.profit_accounts?.name || 'Profit Account') : 'Hand Cash')
+                            : '-';
                           return (
                             <tr key={i} className="border-b border-[var(--color-border)]">
-                              <td className="py-2 px-3">{formatDate(txn.created_at)}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">{formatDate(txn.created_at)}</td>
                               <td className="py-2 px-3 capitalize">
                                 {txn.type?.replace('_', ' ')}
                               </td>
@@ -425,6 +431,8 @@ export default function ReportsPage() {
                               </td>
                               <td className="py-2 px-3 whitespace-nowrap">{txn.customer_account || '-'}</td>
                               <td className="py-2 px-3 whitespace-nowrap">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">{fundInto}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">{isCashIn && txn.source ? txn.source : '-'}</td>
                               <td className="py-2 px-3 text-right text-success">
                                 {isCredit ? formatCurrency(txn.amount, currencySymbol) : '-'}
                               </td>
@@ -445,7 +453,7 @@ export default function ReportsPage() {
                           }, 0);
                           return (
                             <tr className="border-t-2 border-[var(--color-border)] font-bold bg-[var(--color-surface)]">
-                              <td colSpan={5} className="py-2 px-3 text-right">Total</td>
+                              <td colSpan={7} className="py-2 px-3 text-right">Total</td>
                               <td className="py-2 px-3 text-right text-success">{formatCurrency(totalCredit, currencySymbol)}</td>
                               <td className="py-2 px-3 text-right text-danger">{formatCurrency(totalDebit, currencySymbol)}</td>
                             </tr>
@@ -480,7 +488,7 @@ export default function ReportsPage() {
                     <tbody>
                       {reportData.expenses.map((exp, i) => (
                         <tr key={i} className="border-b border-[var(--color-border)]">
-                          <td className="py-2 px-3">{formatDate(exp.created_at)}</td>
+                          <td className="py-2 px-3 whitespace-nowrap">{formatDate(exp.created_at)}</td>
                           <td className="py-2 px-3">
                             {exp.expense_categories?.name || '-'}
                           </td>
@@ -510,6 +518,9 @@ export default function ReportsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Software Credit Footer */}
+          <p className="text-center text-xs text-[var(--color-text-muted)] mt-6">Software by: @rhmunna143</p>
         </div>
       )}
     </div>
