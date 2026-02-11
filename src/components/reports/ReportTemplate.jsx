@@ -54,6 +54,10 @@ export function ReportDocument({ bankName, dateFrom, dateTo, currencySymbol, dat
               <Text style={styles.summaryLabel}>Net Commission</Text>
               <Text style={styles.summaryValue}>{formatCurrency(data.totalCommissions || 0, currencySymbol)}</Text>
             </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryLabel}>Total Balance (Mother + Hand Cash)</Text>
+              <Text style={styles.summaryValue}>{formatCurrency((data.totalMotherBalance || 0) + (data.handCashBalance || 0), currencySymbol)}</Text>
+            </View>
           </View>
         </View>
 
@@ -98,6 +102,12 @@ export function ReportDocument({ bankName, dateFrom, dateTo, currencySymbol, dat
                 <Text style={styles.colRight}>{formatCurrency(exp.amount, currencySymbol)}</Text>
               </View>
             ))}
+            <View style={[styles.row, { borderTop: '1 solid #333', marginTop: 4, paddingTop: 4 }]}>
+              <Text style={[styles.col, { fontWeight: 'bold' }]}></Text>
+              <Text style={[styles.col, { fontWeight: 'bold' }]}></Text>
+              <Text style={[styles.col, { fontWeight: 'bold', textAlign: 'right' }]}>Total Expense</Text>
+              <Text style={[styles.colRight, { fontWeight: 'bold' }]}>{formatCurrency(data.totalExpenses || 0, currencySymbol)}</Text>
+            </View>
           </View>
         )}
 

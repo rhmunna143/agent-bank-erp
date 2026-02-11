@@ -1,4 +1,4 @@
-import { Menu, Bell, LogOut, User, ChevronDown, RefreshCw } from 'lucide-react';
+import { Menu, Bell, LogOut, User, ChevronDown, RefreshCw, RotateCcw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,7 +47,7 @@ export function Topbar({ onMenuClick }) {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        {/* Refresh button */}
+        {/* Soft Refresh button */}
         <button
           onClick={() => {
             setSpinning(true);
@@ -58,6 +58,15 @@ export function Topbar({ onMenuClick }) {
           title="Refresh data"
         >
           <RefreshCw className={`h-5 w-5 text-[var(--color-text-muted)] transition-transform ${spinning ? 'animate-spin' : ''}`} />
+        </button>
+
+        {/* Hard Refresh button */}
+        <button
+          onClick={() => window.location.reload()}
+          className="rounded-md p-2 hover:bg-gray-100"
+          title="Hard refresh (reload page)"
+        >
+          <RotateCcw className="h-5 w-5 text-[var(--color-text-muted)]" />
         </button>
 
         {/* Alerts bell */}

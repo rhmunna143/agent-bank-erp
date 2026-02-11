@@ -349,7 +349,7 @@ export default function ReportsPage() {
                       <div key={ma.id} className={`p-3 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] ${!ma.is_active ? 'opacity-50' : ''}`}>
                         <p className="text-xs text-[var(--color-text-muted)]">{ma.name}</p>
                         <p className="text-sm font-bold">{formatCurrency(ma.balance, currencySymbol)}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)]">{ma.account_number || ''}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)] break-all">{ma.account_number || ''}</p>
                       </div>
                     ))}
                     <div className="p-3 bg-[var(--color-surface)] rounded-lg border-2 border-[var(--color-accent)]">
@@ -359,6 +359,26 @@ export default function ReportsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Total Balance = Total Mother Balance + Hand Cash */}
+              <div className="mt-4 p-4 border-2 border-[var(--color-primary)] rounded-lg bg-[var(--color-primary)]/5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                  <div className="text-center">
+                    <p className="text-xs text-[var(--color-text-muted)]">Total Mother Balance</p>
+                    <p className="text-lg font-bold">{formatCurrency(reportData.totalMotherBalance || 0, currencySymbol)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-[var(--color-text-muted)]">Hand Cash Balance</p>
+                    <p className="text-lg font-bold">{formatCurrency(reportData.handCashBalance || 0, currencySymbol)}</p>
+                  </div>
+                  <div className="text-center p-3 bg-[var(--color-primary)]/10 rounded-lg">
+                    <p className="text-xs text-[var(--color-text-muted)] font-semibold">Total Balance</p>
+                    <p className="text-2xl font-bold text-[var(--color-primary)]">{formatCurrency((reportData.totalMotherBalance || 0) + (reportData.handCashBalance || 0), currencySymbol)}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">Mother Balance + Hand Cash</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Net Flow */}
               <div className="mt-4 p-4 border border-[var(--color-border)] rounded-lg text-center">
                 <p className="text-sm text-[var(--color-text-muted)]">Net Flow</p>
@@ -403,8 +423,8 @@ export default function ReportsPage() {
                               <td className="py-2 px-3">
                                 {txn.customer_name || '-'}
                               </td>
-                              <td className="py-2 px-3">{txn.customer_account || '-'}</td>
-                              <td className="py-2 px-3">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">{txn.customer_account || '-'}</td>
+                              <td className="py-2 px-3 whitespace-nowrap">{txn.mother_accounts?.name || txn.mother_accounts?.account_number || '-'}</td>
                               <td className="py-2 px-3 text-right text-success">
                                 {isCredit ? formatCurrency(txn.amount, currencySymbol) : '-'}
                               </td>
@@ -477,6 +497,14 @@ export default function ReportsPage() {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-[var(--color-border)] font-bold bg-[var(--color-surface)]">
+                        <td colSpan={5} className="py-2 px-3 text-right">Total Expense</td>
+                        <td className="py-2 px-3 text-right text-danger">
+                          {formatCurrency(reportData.totalExpenses || 0, currencySymbol)}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </CardContent>

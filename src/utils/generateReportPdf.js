@@ -104,6 +104,10 @@ export function generateReportPdf({
     cards.push({ label: 'Total Mother Balance', value: fmtCur(reportData.totalMotherBalance || 0, sym), sub: 'All Accounts', color: COLORS.primary });
   }
 
+  // Total Balance = Mother Balance + Hand Cash
+  const totalBalance = (reportData.totalMotherBalance || 0) + (reportData.handCashBalance || 0);
+  cards.push({ label: 'Total Balance', value: fmtCur(totalBalance, sym), sub: 'Mother + Hand Cash', color: COLORS.primary });
+
   // Render cards as autoTable rows of 3 per row for proper wrapping
   const colsPerRow = 3;
   const cardAreaW = pageW - margin * 2;
@@ -222,7 +226,7 @@ export function generateReportPdf({
       columnStyles: {
         0: { cellWidth: 22 },
         1: { cellWidth: 18 },
-        3: { cellWidth: 22 },
+        3: { cellWidth: 'auto' },
         5: { halign: 'right', cellWidth: 22 },
         6: { halign: 'right', cellWidth: 22 },
       },
@@ -248,6 +252,12 @@ export function generateReportPdf({
       (exp.deduct_from || '').replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase()),
       exp.mother_accounts?.name || exp.mother_accounts?.account_number || exp.profit_accounts?.name || '-',
       fmtCur(exp.amount, sym),
+    ]);
+
+    // Add total expense row
+    expRows.push([
+      { content: 'Total Expense', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
+      { content: fmtCur(reportData.totalExpenses || 0, sym), styles: { halign: 'right', fontStyle: 'bold' } },
     ]);
 
     autoTable(doc, {
